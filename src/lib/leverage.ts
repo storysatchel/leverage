@@ -90,3 +90,13 @@ export function validateCharacterJson(text: string) {
     };
   }
 }
+
+/** Leverage total: set aside 1s, add the two highest remaining dice; all 1s => 0. */
+export function leverageTotal(rolls: number[]) {
+  const ones = rolls.filter((r) => r === 1).length;
+  const kept = rolls
+    .filter((r) => r > 1)
+    .sort((a, b) => b - a)
+    .slice(0, 2);
+  return { total: kept.reduce((a, b) => a + b, 0), kept, ones };
+}

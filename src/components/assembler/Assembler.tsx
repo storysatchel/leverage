@@ -4,6 +4,7 @@ import { InteractiveDie } from './InteractiveDie';
 import { PoolDie } from '../../App';
 import { ComicButton } from '../ui/ComicButton';
 import { generateRollCommand } from '../../lib/cortexPal';
+import { leverageTotal } from '../../lib/leverage';
 
 interface AssemblerProps {
     pool: Record<string, PoolDie[]>;
@@ -157,6 +158,12 @@ export const Assembler: React.FC<AssemblerProps> = ({ pool, setPool, categories,
 
                 {results.length > 0 && <div aria-live="polite" className="w-full p-4 border-2 border-black">
                     <strong>Roll results</strong>
+                    {(() => {
+                        const t = leverageTotal(results.map(r => r.result));
+                        return <div className="font-black text-xl" data-testid="leverage-total">
+                            TOTAL: {t.total}{t.ones > 0 && ` (${t.ones} × 1 set aside)`}
+                        </div>;
+                    })()}
                     {results.map(({ die, result }, index) => <div key={`${die.id}-${index}`}>{die.label ? `${die.label}: ` : ''}d{die.value} = {result}</div>)}
                 </div>}
                 {/* Clear Button fixed to bottom */}

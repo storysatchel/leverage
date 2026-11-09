@@ -127,6 +127,7 @@ describe('Assembler', () => {
         fireEvent.click(screen.getByRole('button', { name: 'ROLL POOL' }));
         expect(screen.getByText('Solo: d8 = 5')).toBeInTheDocument();
         expect(screen.getByText('Expert: d6 = 4')).toBeInTheDocument();
+        expect(screen.getByTestId('leverage-total')).toHaveTextContent('TOTAL: 9');
     });
 
     it('copies the roll command to clipboard', async () => {
