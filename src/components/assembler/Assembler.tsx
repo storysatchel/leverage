@@ -15,6 +15,7 @@ interface AssemblerProps {
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export const Assembler: React.FC<AssemblerProps> = ({ pool, setPool, categories, onToast }) => {
+    const [results, setResults] = useState<Array<{ die: PoolDie; result: number }>>([]);
     const triggerToast = (message: string) => {
         if (onToast) onToast(message);
     };
@@ -68,6 +69,7 @@ export const Assembler: React.FC<AssemblerProps> = ({ pool, setPool, categories,
         const initialPool: Record<string, PoolDie[]> = {};
         categories.forEach(cat => initialPool[cat.id] = []);
         setPool(initialPool);
+        setResults([]);
         if (navigator.vibrate) navigator.vibrate(50);
         triggerToast('Pool cleared');
     };
@@ -153,8 +155,17 @@ export const Assembler: React.FC<AssemblerProps> = ({ pool, setPool, categories,
                     <i className="fas fa-compress-arrows-alt mr-1"></i> Press and hold a die to remove it.
                 </p>
 
+                {results.length > 0 && <div aria-live="polite" className="w-full p-4 border-2 border-black">
+                    <strong>Roll results</strong>
+                    {results.map(({ die, result }, index) => <div key={`${die.id}-${index}`}>{die.label ? `${die.label}: ` : ''}d{die.value} = {result}</div>)}
+                </div>}
                 {/* Clear Button fixed to bottom */}
                 <div className="sticky bottom-0 w-full p-4 bg-white/90 backdrop-blur border-t-4 border-black flex flex-wrap justify-center gap-4 z-40 mt-4">
+                    <ComicButton variant="green" size="lg" onClick={() => {
+                        const dice = Object.values(pool).flat();
+                        if (!dice.length) { triggerToast('Pool is empty'); return; }
+                        setResults(dice.map(die => ({ die, result: Math.floor(Math.random() * die.value) + 1 })));
+                    }}>ROLL POOL</ComicButton>
                     <ComicButton
                         onClick={handleCopyCommand}
                         variant="blue"

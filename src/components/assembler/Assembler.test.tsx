@@ -120,6 +120,15 @@ describe('Assembler', () => {
         expect(screen.getByText('Buddy')).toBeInTheDocument();
     });
 
+    it('rolls the selected dice and displays their individual results', () => {
+        vi.spyOn(Math, 'random').mockReturnValue(0.5);
+        const pool = { affil: [{ id: '1', value: 8, label: 'Solo' }], spec: [{ id: '2', value: 6, label: 'Expert' }] };
+        render(<Assembler pool={pool} setPool={vi.fn()} categories={mockCategories} />);
+        fireEvent.click(screen.getByRole('button', { name: 'ROLL POOL' }));
+        expect(screen.getByText('Solo: d8 = 5')).toBeInTheDocument();
+        expect(screen.getByText('Expert: d6 = 4')).toBeInTheDocument();
+    });
+
     it('copies the roll command to clipboard', async () => {
         vi.useRealTimers();
         const pool = {
