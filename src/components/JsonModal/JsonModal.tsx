@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { validateCharacterJson } from '../../lib/validation';
+import { validateCharacterJson } from '../../lib/leverage';
 import { ComicButton } from '../ui/ComicButton';
 import { ValidationErrorBox } from './ValidationErrorBox';
 import { SchemaCopyLink } from './SchemaCopyLink';
@@ -19,9 +19,7 @@ export default function JsonModal({ isOpen, onClose, data, onImport }: JsonModal
 
   useEffect(() => {
     if (isOpen) {
-      // Omit portrait from export as it makes the JSON unreadable
-      const { portrait, ...exportData } = data;
-      setJsonText(JSON.stringify(exportData, null, 4));
+      setJsonText(JSON.stringify(data, null, 4));
       setErrors([]);
     }
   }, [isOpen, data]);
@@ -61,7 +59,7 @@ export default function JsonModal({ isOpen, onClose, data, onImport }: JsonModal
         
         <p className="text-black font-bold font-comic-label mb-4 text-sm flex-shrink-0 opacity-80">
           Copy this data to save your character, or paste a previously saved JSON file here to load it. 
-          (Note: Portraits are not included in the JSON.)
+          Portraits are included and can make the JSON and sharing link large.
         </p>
         
         <ValidationErrorBox errors={errors} />

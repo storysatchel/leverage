@@ -1,337 +1,535 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useQueryState } from 'nuqs';
-import { parseAsCompressedJson } from './lib/state-parser';
-import HeaderSection from './components/character/HeaderSection';
-import PowerSetsSection from './components/character/PowerSetsSection';
-import SpecsSection from './components/character/SpecsSection';
-import MilestonesSection from './components/character/MilestonesSection';
-import JsonModal from './components/JsonModal';
-import { Assembler } from './components/assembler/Assembler';
-import { BASE_CATEGORIES, TRAIT_CATEGORIES, Category } from './components/assembler/constants';
-import { loadCharacterData, clearCharacterData, loadMode, saveMode } from './lib/persistence';
-import { cn } from './lib/utils';
-import { ComicButton } from './components/ui/ComicButton';
-import { generateXPCommand, generatePPCommand } from './lib/cortexPal';
-
-import { characterSchema, CharacterDataValidation as CharacterData, Power, SFX, PowerSet, Specialty, Milestone } from './lib/validation';
-
-export type { Power, SFX, PowerSet, Specialty, Milestone, CharacterData };
-
+import React, { useState, useEffect } from "react";
+import { useQueryState } from "nuqs";
+import { parseAsCompressedJson } from "./lib/state-parser";
+import {
+  characterSchema,
+  defaultCharacter,
+  type CharacterData as RapSheet,
+  type Trait,
+} from "./lib/leverage";
+import { loadMode, saveMode } from "./lib/persistence";
+import { Assembler } from "./components/assembler/Assembler";
+import {
+  BASE_CATEGORIES,
+  TRAIT_CATEGORIES,
+} from "./components/assembler/constants";
+import JsonModal from "./components/JsonModal";
+import ModeSelector from "./components/character/ModeSelector";
+import TraitItem from "./components/ui/TraitItem";
+import { ComicButton } from "./components/ui/ComicButton";
+import talents from "./data/talents.json";
+import specialties from "./data/specialties.json";
+export type {
+  Power,
+  SFX,
+  PowerSet,
+  Specialty,
+  Milestone,
+  CharacterDataValidation as CharacterData,
+} from "./lib/validation";
 export interface PoolDie {
-    id: string;
-    value: number;
-    label?: string;
+  id: string;
+  value: number;
+  label?: string;
 }
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-export const defaultState: CharacterData = {
-    heroName: "HERO NAME",
-    realName: "Real Name",
-    identityStatus: "secret",
-    portrait: null,
-    affiliations: ['8', '6', '10'],
-    distinctions: ["DISTINCTION 1", "DISTINCTION 2", "DISTINCTION 3"],
-    xp: 0,
-    pp: 1,
-    stress: { p: 0, m: 0, e: 0 },
-    powerSets: [
-        {
-            id: generateId(),
-            name: "NEW POWER SET",
-            powers: [{ id: generateId(), die: "8", name: "NEW POWER" }],
-            sfx: [
-                { id: generateId(), type: "SFX:", name: "Name.", desc: "Description of the effect." },
-                { id: generateId(), type: "SFX:", name: "Name.", desc: "Description of the effect." }
-            ]
-        }
-    ],
-    specialties: [
-        { id: generateId(), die: "8", name: "NEW SPECIALTY" },
-        { id: generateId(), die: "8", name: "NEW SPECIALTY" }
-    ],
-    milestones: [
-        {
-            id: generateId(),
-            name: "MILESTONE NAME",
-            xp1: "when you do a minor thing.",
-            xp3: "when you do a major thing.",
-            xp10: "when you make a character defining choice."
-        }
-    ]
-};
-
-interface ToastAction {
-    label: string;
-    onClick: () => void;
-}
-
+export const defaultState = defaultCharacter;
+const id = () => crypto.randomUUID();
+const categories = [...BASE_CATEGORIES, ...TRAIT_CATEGORIES];
 function App() {
-    const [activeTab, setActiveTab] = useState<'character' | 'assembler'>('character');
-    const [appMode, setAppMode] = useState<'edit' | 'play'>(() => loadMode());
-    const [data, setData] = useQueryState<CharacterData>('DATAFILE', parseAsCompressedJson<CharacterData>((val) => {
-        const result = characterSchema.safeParse(val);
-        return result.success ? result.data : null;
-    }).withDefault(defaultState).withOptions({ throttleMs: 300 }));
-    const [pool, setPool] = useState<Record<string, PoolDie[]>>({});
-    const [showToast, setShowToast] = useState(false);
-    const [toastMessage, setToastMessage] = useState('');
-    const [toastAction, setToastAction] = useState<ToastAction | null>(null);
-    const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
-    const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const triggerToast = (message: string, action?: ToastAction) => {
-        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-        
-        setToastMessage(message);
-        setToastAction(action || null);
-        setShowToast(true);
-
-        const duration = action ? 6000 : 3000;
-        
-        toastTimeoutRef.current = setTimeout(() => {
-            setShowToast(false);
-            // Wait for transition to finish before clearing message/action
-            setTimeout(() => {
-                setToastAction(null);
-            }, 300);
-        }, duration);
-    };
-
-    // Clean up timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-        };
-    }, []);
-
-    // Compute dynamic categories based on character power sets
-    const categories: Category[] = [
-        ...BASE_CATEGORIES,
-        ...data.powerSets.map((ps, idx) => ({
-            id: `ps-${idx}`,
-            title: ps.name || `POWER SET ${idx + 1}`,
-            sub: '',
-            bg: idx % 2 === 0 ? '#f58a52' : '#fec594',
-            textColor: 'text-black'
-        })),
-        ...TRAIT_CATEGORIES
-    ];
-
-    // Ensure pool keys exist for all categories
-    useEffect(() => {
-        setPool(prev => {
-            const newPool = { ...prev };
-            categories.forEach(cat => {
-                if (!newPool[cat.id]) newPool[cat.id] = [];
-            });
-            return newPool;
-        });
-    }, [data.powerSets.length]);
-
-    // Save mode on change
-    useEffect(() => {
-        saveMode(appMode);
-    }, [appMode]);
-
-    // Migrate legacy local storage data to URL on initial load
-    useEffect(() => {
-        const legacyData = loadCharacterData();
-        if (legacyData) {
-            const hasUrlData = window.location.search.includes('DATAFILE=');
-            if (!hasUrlData) {
-                setData(legacyData);
+  const [data, setData] = useQueryState<RapSheet>(
+    "DATAFILE",
+    parseAsCompressedJson<RapSheet>((value) => {
+      const result = characterSchema.safeParse(value);
+      return result.success ? result.data : null;
+    })
+      .withDefault(defaultCharacter)
+      .withOptions({ throttleMs: 300 }),
+  );
+  const [mode, setMode] = useState<"edit" | "play">(() => loadMode());
+  const [pool, setPool] = useState<Record<string, PoolDie[]>>({});
+  const [modal, setModal] = useState(false);
+  const [tab, setTab] = useState<"sheet" | "pool">("sheet");
+  const [toast, setToast] = useState("");
+  useEffect(() => {
+    saveMode(mode);
+  }, [mode]);
+  const update = (changes: Partial<RapSheet>) =>
+    setData((prev) => ({ ...prev, ...changes }));
+  const addDie = (category: string, die: string | number, label: string) =>
+    setPool((prev) => ({
+      ...prev,
+      [category]: [
+        ...(prev[category] || []),
+        { id: id(), value: Number(die), label },
+      ],
+    }));
+  const edit = mode === "edit";
+  const field = (
+    label: string,
+    value: string,
+    change: (value: string) => void,
+  ) => (
+    <label className="block font-bold">
+      {label}
+      <input
+        className="block w-full border-2 border-black p-1 bg-white"
+        aria-label={label}
+        value={value}
+        readOnly={!edit}
+        onChange={(e) => change(e.target.value)}
+      />
+    </label>
+  );
+  const traits = (
+    title: string,
+    key: "roles" | "attributes" | "assets" | "complications",
+    category: string,
+  ) => (
+    <section className="p-4 border-b-4 border-black bg-comic-yellow">
+      <h2 className="font-comic-title text-3xl">{title}</h2>
+      <div className="flex flex-wrap gap-6 py-3">
+        {data[key].map((item, index) => (
+          <TraitItem
+            key={item.id}
+            die={item.die}
+            name={item.name}
+            placeholder={title}
+            isReadOnly={!edit}
+            onDieChange={(die) =>
+              update({
+                [key]: data[key].map((v, i) =>
+                  i === index ? { ...v, die } : v,
+                ),
+              })
             }
-            clearCharacterData();
-        }
-    }, [setData]);
-
-    const updateData = (updates: Partial<CharacterData>) => {
-        setData(prev => ({ ...prev, ...updates }));
-    };
-
-    const handleReset = () => {
-        clearCharacterData();
-        setData(defaultState);
-    };
-
-    const addDieToPool = (categoryId: string, value: number, label?: string) => {
-        setPool(prev => ({
-            ...prev,
-            [categoryId]: [...(prev[categoryId] || []), { id: generateId(), value, label }]
-        }));
-        if (navigator.vibrate) navigator.vibrate(15);
-    };
-
-    const handleMilestoneClick = (amount: number) => {
-        // a) Increase XP field
-        updateData({ xp: data.xp + amount });
-
-        // b) Copy command to clipboard
-        const command = generateXPCommand(data.heroName, amount);
-        if (command) {
-            navigator.clipboard.writeText(command).then(() => {
-                triggerToast(`XP added! Command copied: ${command}`);
-            }).catch(err => {
-                console.error('Failed to copy XP command: ', err);
-                triggerToast(`XP added! (Failed to copy command)`);
-            });
-        }
-    };
-
-    const handleHinderClick = (distIdx: number) => {
-        const distName = data.distinctions[distIdx];
-        
-        // a) Add d4 to pool
-        addDieToPool('dist', 4, `${distName} (Hinder)`);
-        
-        // b) Add 1 PP
-        updateData({ pp: data.pp + 1 });
-
-        // c) Copy command to clipboard
-        const command = generatePPCommand(data.heroName, 1);
-        if (command) {
-            navigator.clipboard.writeText(command).then(() => {
-                triggerToast(`PP added! Command copied: ${command}`);
-            }).catch(err => {
-                console.error('Failed to copy PP command: ', err);
-                triggerToast(`PP added! (Failed to copy command)`);
-            });
-        }
-    };
-
-    const isPlayMode = appMode === 'play';
-
-    return (
-        <div className="min-h-screen pb-10 bg-white">
-            {/* Titlebar */}
-            <div className="bg-black py-3 px-6 flex justify-center md:justify-start items-baseline gap-3 border-b-4 border-red-600 shadow-md no-print">
-                <span className="font-comic-label font-black text-white text-4xl tracking-tighter">MARVEL</span>
-                <span className="font-comic-label font-black text-white text-2xl tracking-tighter">HEROIC</span>
-                <span className="font-comic-label font-black text-white text-sm tracking-widest pb-1">ROLEPLAYING</span>
-            </div>
-
-            <div className="p-4 border-4 border-black flex flex-wrap justify-center gap-4 mb-6 bg-comic-cyan comic-panel mx-4 mt-4 lg:hidden no-print">
-                <ComicButton
-                    variant={activeTab === 'character' ? 'red' : 'white'}
-                    size="lg"
-                    onClick={() => setActiveTab('character')}
-                >
-                    DATAFILE
-                </ComicButton>
-                <ComicButton
-                    variant={activeTab === 'assembler' ? 'red' : 'white'}
-                    size="lg"
-                    onClick={() => setActiveTab('assembler')}
-                >
-                    DICE POOL ASSEMBLER
-                </ComicButton>
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-8 items-start justify-center max-w-[1500px] mx-auto px-4 lg:mt-8">
-                <div className={`w-full lg:w-auto lg:flex-grow lg:block max-w-[1000px] ${activeTab === 'character' ? 'block' : 'hidden'}`}>
-                    <div className="datafile-container mx-auto mb-10 w-full max-w-full">
-                        <HeaderSection 
-                            data={data} 
-                            updateData={updateData} 
-                            isPlayMode={isPlayMode} 
-                            appMode={appMode}
-                            setAppMode={setAppMode}
-                            onTraitClick={addDieToPool}
-                            onHinderClick={handleHinderClick}
-                        />
-                        <PowerSetsSection 
-                            powerSets={data.powerSets} 
-                            onChange={(ps: PowerSet[]) => updateData({ powerSets: ps })} 
-                            isPlayMode={isPlayMode} 
-                            onTraitClick={addDieToPool}
-                        />
-                        <SpecsSection 
-                            specialties={data.specialties} 
-                            onChange={(sp: Specialty[]) => updateData({ specialties: sp })} 
-                            isPlayMode={isPlayMode} 
-                            onTraitClick={addDieToPool}
-                        />
-                        <MilestonesSection 
-                            milestones={data.milestones} 
-                            onChange={(m: Milestone[]) => updateData({ milestones: m })} 
-                            isPlayMode={isPlayMode} 
-                            onMilestoneClick={handleMilestoneClick}
-                        />
-
-                        <div className="bg-white p-4 border-t-4 border-black flex flex-wrap justify-end gap-4 no-print">
-                            <ComicButton 
-                                variant="red" 
-                                size="md"
-                                onClick={handleReset}
-                            >RESET DATA</ComicButton>
-                            <ComicButton 
-                                variant="blue" 
-                                size="md"
-                                onClick={() => setIsJsonModalOpen(true)}
-                            >IMPORT / EXPORT</ComicButton>
-                            <ComicButton 
-                                variant="green" 
-                                size="md"
-                                onClick={() => window.print()}
-                            >PRINT PDF</ComicButton>
-                        </div>
-
-                        <JsonModal 
-                            isOpen={isJsonModalOpen} 
-                            onClose={() => setIsJsonModalOpen(false)} 
-                            data={data}
-                            onImport={(importedData: any) => {
-                                // Ensure IDs exist on imported data to prevent key errors
-                                const processedData = { ...defaultState, ...importedData };
-                                if (processedData.powerSets) {
-                                    processedData.powerSets.forEach((ps: PowerSet) => {
-                                        if (!ps.id) ps.id = generateId();
-                                        if (ps.powers) ps.powers.forEach((p: Power) => { if (!p.id) p.id = generateId(); });
-                                        if (ps.sfx) ps.sfx.forEach((s: SFX) => { if (!s.id) s.id = generateId(); });
-                                    });
-                                }
-                                if (processedData.specialties) {
-                                    processedData.specialties.forEach((sp: Specialty) => { if (!sp.id) sp.id = generateId(); });
-                                }
-                                if (processedData.milestones) {
-                                    processedData.milestones.forEach((m: Milestone) => { if (!m.id) m.id = generateId(); });
-                                }
-                                setData(processedData);
-                            }}
-                        />
-                    </div>
-                </div>
-                
-                <div className={`w-full lg:w-[450px] lg:block lg:flex-shrink-0 no-print ${activeTab === 'assembler' ? 'block' : 'hidden'}`}>
-                    <Assembler pool={pool} setPool={setPool} categories={categories} onToast={triggerToast} />
-                </div>
-            </div>
-
-            {/* Global Toast Notification */}
-            <div className={cn(
-                "fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full font-bold transition-all duration-300 z-[100] shadow-2xl border-2 border-white/20 text-center min-w-[300px] flex items-center justify-between gap-4 no-print",
-                showToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-            )}>
-                <span>{toastMessage}</span>
-                {toastAction && (
-                    <ComicButton 
-                        size="xs" 
-                        variant="green" 
-                        className="pointer-events-auto shadow-none active:translate-y-0 active:translate-x-0"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            toastAction.onClick();
-                            setShowToast(false);
-                            setToastAction(null);
-                        }}
-                    >
-                        {toastAction.label}
-                    </ComicButton>
+            onNameChange={(name) =>
+              update({
+                [key]: data[key].map((v, i) =>
+                  i === index ? { ...v, name } : v,
+                ),
+              })
+            }
+            onTraitClick={() => addDie(category, item.die, item.name)}
+            onRemove={
+              key === "assets" || key === "complications"
+                ? () =>
+                    update({ [key]: data[key].filter((v) => v.id !== item.id) })
+                : undefined
+            }
+          />
+        ))}
+      </div>
+      {edit && (key === "assets" || key === "complications") && (
+        <ComicButton
+          size="xs"
+          onClick={() =>
+            update({
+              [key]: [
+                ...data[key],
+                {
+                  id: id(),
+                  name: `NEW ${title.toUpperCase()}`,
+                  die: "6",
+                } satisfies Trait,
+              ],
+            })
+          }
+        >
+          + ADD {title.toUpperCase()}
+        </ComicButton>
+      )}
+    </section>
+  );
+  return (
+    <div className="min-h-screen bg-white pb-10">
+      <header className="bg-black text-white p-4 font-comic-title text-4xl">
+        LEVERAGE — RAP SHEET
+      </header>
+      <div className="lg:hidden flex gap-2 p-4 no-print">
+        <ComicButton onClick={() => setTab("sheet")}>RAP SHEET</ComicButton>
+        <ComicButton onClick={() => setTab("pool")}>DICE POOL</ComicButton>
+      </div>
+      <main className="flex flex-col lg:flex-row gap-6 max-w-[1500px] mx-auto p-4 items-start">
+        <div
+          className={`w-full lg:flex-1 lg:block ${tab === "sheet" ? "" : "hidden"}`}
+        >
+          <div className="datafile-container">
+            <section className="p-4 border-b-4 border-black">
+              <div className="flex justify-end">
+                <ModeSelector mode={mode} onChange={setMode} />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                {field("Name", data.name, (name) => update({ name }))}
+                {field("Alias", data.alias, (alias) => update({ alias }))}
+              </div>
+              <div className="mt-4">
+                <label className="font-bold">
+                  Portrait{" "}
+                  {edit && (
+                    <input
+                      aria-label="Upload portrait"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () =>
+                            update({ portrait: String(reader.result) });
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  )}
+                </label>
+                {data.portrait && (
+                  <img
+                    src={data.portrait}
+                    alt="Character Portrait"
+                    className="max-h-64"
+                  />
                 )}
+                {edit && data.portrait && (
+                  <button onClick={() => update({ portrait: null })}>
+                    Remove portrait
+                  </button>
+                )}
+              </div>
+              <label className="block font-bold mt-4">
+                Background
+                <textarea
+                  className="block w-full border-2 p-1"
+                  value={data.background}
+                  readOnly={!edit}
+                  onChange={(e) => update({ background: e.target.value })}
+                />
+              </label>
+              <label className="block font-bold mt-4">
+                Plot Points{" "}
+                <input
+                  type="number"
+                  min="0"
+                  className="border-2 w-20"
+                  value={data.pp}
+                  onChange={(e) =>
+                    update({ pp: Math.max(0, Number(e.target.value) || 0) })
+                  }
+                />
+              </label>
+            </section>
+            {traits("Roles", "roles", "role")}
+            {traits("Attributes", "attributes", "attribute")}
+            <section className="p-4 border-b-4 border-black bg-comic-green">
+              <h2 className="font-comic-title text-3xl">Distinctions</h2>
+              {data.distinctions.map((d, i) => (
+                <div
+                  key={d.id}
+                  className="flex flex-wrap items-center gap-2 mt-2"
+                >
+                  {edit ? (
+                    <input
+                      aria-label={`Distinction ${i + 1}`}
+                      className="border-2 bg-white p-1"
+                      value={d.name}
+                      onChange={(e) =>
+                        update({
+                          distinctions: data.distinctions.map((x, n) =>
+                            n === i ? { ...x, name: e.target.value } : x,
+                          ),
+                        })
+                      }
+                    />
+                  ) : (
+                    <>
+                      <button
+                        className="underline font-bold"
+                        onClick={() => addDie("dist", 8, d.name)}
+                      >
+                        {d.name} d8
+                      </button>
+                      <button
+                        className="underline"
+                        onClick={() => {
+                          addDie("dist", 4, d.name + " (hinder)");
+                          update({ pp: data.pp + 1 });
+                        }}
+                      >
+                        Hinder d4 (+1 PP)
+                      </button>
+                    </>
+                  )}
+                  {edit && (
+                    <button
+                      onClick={() =>
+                        update({
+                          distinctions: data.distinctions.filter(
+                            (x) => x.id !== d.id,
+                          ),
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              {edit && (
+                <ComicButton
+                  size="xs"
+                  onClick={() =>
+                    update({
+                      distinctions: [
+                        ...data.distinctions,
+                        { id: id(), name: "NEW DISTINCTION" },
+                      ],
+                    })
+                  }
+                >
+                  + ADD DISTINCTION
+                </ComicButton>
+              )}
+            </section>
+            <section className="p-4 border-b-4 border-black">
+              <h2 className="font-comic-title text-3xl">Specialties</h2>
+              <p>
+                Book examples are suggestions, not an exhaustive list.
+                Specialties normally add d6 with their associated role; adjust
+                as needed.
+              </p>
+              {data.specialties.map((s, i) => (
+                <div
+                  className="flex flex-wrap gap-2 items-center my-2"
+                  key={s.id}
+                >
+                  <TraitItem
+                    die={s.die}
+                    name={s.name}
+                    placeholder="Specialty"
+                    isReadOnly={!edit}
+                    onDieChange={(die) =>
+                      update({
+                        specialties: data.specialties.map((x, n) =>
+                          n === i ? { ...x, die } : x,
+                        ),
+                      })
+                    }
+                    onNameChange={(name) =>
+                      update({
+                        specialties: data.specialties.map((x, n) =>
+                          n === i ? { ...x, name } : x,
+                        ),
+                      })
+                    }
+                    onTraitClick={() =>
+                      addDie("spec", s.die, `${s.name} (${s.role})`)
+                    }
+                    onRemove={() =>
+                      update({
+                        specialties: data.specialties.filter(
+                          (x) => x.id !== s.id,
+                        ),
+                      })
+                    }
+                  />
+                  {edit ? (
+                    <select
+                      aria-label="Specialty role"
+                      value={s.role}
+                      onChange={(e) =>
+                        update({
+                          specialties: data.specialties.map((x, n) =>
+                            n === i ? { ...x, role: e.target.value } : x,
+                          ),
+                        })
+                      }
+                    >
+                      {data.roles.map((r) => (
+                        <option key={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span>({s.role})</span>
+                  )}
+                </div>
+              ))}
+              {edit && (
+                <>
+                  <select
+                    aria-label="Specialty examples"
+                    defaultValue=""
+                    onChange={(e) => {
+                      const s = specialties[Number(e.target.value)];
+                      if (s)
+                        update({
+                          specialties: [
+                            ...data.specialties,
+                            { id: id(), name: s.name, role: s.role, die: "6" },
+                          ],
+                        });
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Add a book example…</option>
+                    {specialties.map((s, i) => (
+                      <option key={i} value={i}>
+                        {s.name} ({s.role}) — core p. {s.page}
+                      </option>
+                    ))}
+                  </select>
+                  <ComicButton
+                    size="xs"
+                    onClick={() =>
+                      update({
+                        specialties: [
+                          ...data.specialties,
+                          {
+                            id: id(),
+                            name: "NEW SPECIALTY",
+                            role: data.roles[0]?.name || "",
+                            die: "6",
+                          },
+                        ],
+                      })
+                    }
+                  >
+                    + CUSTOM
+                  </ComicButton>
+                </>
+              )}
+            </section>
+            <section className="p-4 border-b-4 border-black bg-comic-blue">
+              <h2 className="font-comic-title text-3xl">Talents</h2>
+              <p>
+                Talents have no inherent die rating. Use the adjustable die for
+                an applicable Talent effect; consult the cited book for its
+                rules.
+              </p>
+              {data.talents.map((t, i) => (
+                <div className="my-3" key={t.id}>
+                  <TraitItem
+                    die={t.die}
+                    name={t.name}
+                    placeholder="Talent"
+                    isReadOnly={!edit}
+                    onDieChange={(die) =>
+                      update({
+                        talents: data.talents.map((x, n) =>
+                          n === i ? { ...x, die } : x,
+                        ),
+                      })
+                    }
+                    onNameChange={(name) =>
+                      update({
+                        talents: data.talents.map((x, n) =>
+                          n === i ? { ...x, name } : x,
+                        ),
+                      })
+                    }
+                    onTraitClick={() => addDie("talent", t.die, t.name)}
+                    onRemove={() =>
+                      update({
+                        talents: data.talents.filter((x) => x.id !== t.id),
+                      })
+                    }
+                  />
+                  <textarea
+                    aria-label={`${t.name} notes`}
+                    className="w-full border-2 bg-white"
+                    placeholder="Rules notes / reference"
+                    value={t.notes}
+                    readOnly={!edit}
+                    onChange={(e) =>
+                      update({
+                        talents: data.talents.map((x, n) =>
+                          n === i ? { ...x, notes: e.target.value } : x,
+                        ),
+                      })
+                    }
+                  />
+                </div>
+              ))}
+              {edit && (
+                <>
+                  <select
+                    aria-label="Talent examples"
+                    defaultValue=""
+                    onChange={(e) => {
+                      const t = talents[Number(e.target.value)];
+                      if (t)
+                        update({
+                          talents: [
+                            ...data.talents,
+                            {
+                              id: id(),
+                              name: t.name,
+                              notes: `${t.book}, p. ${t.page} (${t.role})`,
+                              die: "8",
+                            },
+                          ],
+                        });
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Add a book example…</option>
+                    {talents.map((t, i) => (
+                      <option key={i} value={i}>
+                        {t.name} — {t.book}, p. {t.page}
+                      </option>
+                    ))}
+                  </select>
+                  <ComicButton
+                    size="xs"
+                    onClick={() =>
+                      update({
+                        talents: [
+                          ...data.talents,
+                          { id: id(), name: "NEW TALENT", notes: "", die: "8" },
+                        ],
+                      })
+                    }
+                  >
+                    + CUSTOM
+                  </ComicButton>
+                </>
+              )}
+            </section>
+            {traits("Assets", "assets", "asset")}
+            {traits("Complications", "complications", "comp")}
+            <div className="p-4 flex flex-wrap gap-3 no-print">
+              <ComicButton
+                variant="red"
+                onClick={() => setData(defaultCharacter)}
+              >
+                RESET DATA
+              </ComicButton>
+              <ComicButton variant="blue" onClick={() => setModal(true)}>
+                IMPORT / EXPORT
+              </ComicButton>
+              <ComicButton variant="green" onClick={() => window.print()}>
+                PRINT PDF
+              </ComicButton>
             </div>
+            <JsonModal
+              isOpen={modal}
+              onClose={() => setModal(false)}
+              data={data}
+              onImport={(value) => setData(value)}
+            />
+          </div>
         </div>
-    );
+        <div
+          className={`w-full lg:w-[450px] lg:block no-print ${tab === "pool" ? "" : "hidden"}`}
+        >
+          <Assembler
+            pool={pool}
+            setPool={setPool}
+            categories={categories}
+            onToast={setToast}
+          />
+          <div role="status">{toast}</div>
+        </div>
+      </main>
+    </div>
+  );
 }
-
 export default App;
