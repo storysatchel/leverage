@@ -4,56 +4,71 @@
 @import "open-props/animations.min.css" layer(base);
 @import "open-props/easings.min.css" layer(base);
 
+/* Self-hosted fonts (no CDN): Chakra Petch display, Inter body, JetBrains Mono data. */
+@import "@fontsource/chakra-petch/500.css";
+@import "@fontsource/chakra-petch/600.css";
+@import "@fontsource/chakra-petch/700.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+/*
+ * "Tactical Heist Terminal" design tokens, ported from the style-guide prototype.
+ * Semantic shadcn-style tokens (background, card, border, ...) are mapped onto the
+ * palette so existing components pick up the theme.
+ */
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #000000;
+  /* Palette */
+  --color-obsidian-950: #070b19;
+  --color-obsidian-900: #0b132b;
+  --color-obsidian-800: #111625;
+  --color-gunmetal-800: #1d212d;
+  --color-gunmetal-700: #2a2e3d;
+  --color-gunmetal-600: #3e4452;
+  --color-blueprint: #f8f9fa;
+  --color-leverage-cyan: #00a8e8;
+  --color-leverage-deep: #0080c0;
+  --color-leverage-neon: #00f0ff;
+  --color-plot-gold: #f4a261;
+  --color-plot-brass: #e9c46a;
+  --color-hitch-crimson: #e63946;
+  --color-hitch-deep: #c9102a;
+  /* Lighter crimson for TEXT on dark surfaces (AA); #e63946 stays for fills/borders. */
+  --color-hitch-text: #ff7b85;
+  --color-flashback-slate: #6c757d;
+  --color-flashback-dark: #495057;
+  /* Muted text that still clears AA on gunmetal/obsidian. */
+  --color-ink-muted: #a9b1c1;
 
-  --color-card: #ffffff;
-  --color-card-foreground: #000000;
+  /* Role accent (switched per Role with [data-role]) */
+  --color-role: var(--role-accent);
 
-  --color-border: #000000;
-  --color-border-hover: #4b5563;
-  --color-ring: #ef4444;
-
-  --color-primary: #ef4444;
-  --color-primary-foreground: #ffffff;
-
-  --color-secondary: #f3f4f6;
-  --color-secondary-foreground: #000000;
-
-  --color-destructive: #ef4444;
+  /* Semantic tokens */
+  --color-background: var(--color-obsidian-900);
+  --color-foreground: var(--color-blueprint);
+  --color-card: var(--color-gunmetal-800);
+  --color-card-foreground: var(--color-blueprint);
+  --color-border: var(--color-gunmetal-600);
+  --color-border-hover: #6b7488;
+  --color-ring: var(--color-leverage-neon);
+  --color-primary: var(--color-leverage-cyan);
+  --color-primary-foreground: var(--color-obsidian-950);
+  --color-secondary: var(--color-gunmetal-700);
+  --color-secondary-foreground: var(--color-blueprint);
+  --color-destructive: var(--color-hitch-crimson);
   --color-destructive-foreground: #ffffff;
+  --color-muted: var(--color-gunmetal-700);
+  --color-muted-foreground: var(--color-ink-muted);
+  --color-popover: var(--color-gunmetal-800);
+  --color-popover-foreground: var(--color-blueprint);
+  --color-accent: var(--color-gunmetal-700);
+  --color-accent-foreground: var(--color-blueprint);
+  --color-input: var(--color-gunmetal-700);
 
-  --color-muted: #e5e7eb;
-  --color-muted-foreground: #4b5563;
+  --font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 
-  /* Shadcn standard tokens mapped to comic colors */
-  --color-popover: #ffffff;
-  --color-popover-foreground: #000000;
-  --color-accent: #f3f4f6;
-  --color-accent-foreground: #000000;
-  --color-input: #e5e7eb;
-
-  /* Comic specific */
-  --color-comic-yellow: #fbf579;
-  --color-comic-green: #3fc959;
-  --color-comic-orange: #f58a52;
-  --color-comic-orange-light: #fec594;
-  --color-comic-blue: #86bcf9;
-  --color-comic-purple: #9163cc;
-  --color-comic-red: #e5523d;
-  --color-comic-cyan: #bef4f5;
-  --color-comic-gray: #b5b9bb;
-
-  /* Specific Die Colors */
-  --color-die-d4: #ef4444;
-  --color-die-d6: #3b82f6;
-  --color-die-d8: #22c55e;
-  --color-die-d10: #eab308;
-  --color-die-d12: #a855f7;
-
-  --shadow-comic: 4px 4px 0px 0px rgba(0, 0, 0, 1);
-  --shadow-comic-active: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-card: 0 8px 20px -4px rgb(0 0 0 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.06);
 
   --radius-lg: 0.5rem;
   --radius-md: calc(var(--radius-lg) - 2px);
@@ -62,282 +77,232 @@
   --animate-fade-in: fade-in 0.2s var(--ease-3) forwards;
   --animate-slide-in: slide-in-down 0.3s var(--ease-out-4) backwards;
   --animate-pop: pop-in 0.25s var(--ease-squish-2) forwards;
-  --animate-crumple-out: crumple-out 0.35s var(--ease-in-3) forwards;
-  --animate-stress-fill: stress-fill 0.25s var(--ease-3) forwards;
+  --animate-reticle: reticle-pulse 4s ease-in-out infinite;
 
   @keyframes pop-in {
-    0% {
-      transform: scale(0);
-      opacity: 0;
-    }
-    80% {
-      transform: scale(1.1);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
   }
-
-  @keyframes crumple-out {
-    0% {
-      transform: scale(1) rotate(0deg);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.05) rotate(-3deg);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(0.3) rotate(-15deg);
-      opacity: 0;
-    }
-  }
-
-  @keyframes stress-fill {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.25);
-    }
-    100% {
-      transform: scale(1);
-    }
+  @keyframes reticle-pulse {
+    0%, 100% { opacity: 0.45; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.04); }
   }
 }
+
+:root {
+  --role-accent: #00a8e8;
+  --role-glow: rgb(0 168 232 / 0.25);
+}
+/* Role accent spectrum: one accent per Leverage Role. */
+[data-role="mastermind"] { --role-accent: #00a8e8; --role-glow: rgb(0 168 232 / 0.25); }
+[data-role="grifter"] { --role-accent: #e9c46a; --role-glow: rgb(233 196 106 / 0.25); }
+[data-role="hacker"] { --role-accent: #00f0ff; --role-glow: rgb(0 240 255 / 0.25); }
+[data-role="hitter"] { --role-accent: #f4a261; --role-glow: rgb(244 162 97 / 0.25); }
+[data-role="thief"] { --role-accent: #c084fc; --role-glow: rgb(192 132 252 / 0.25); }
 
 @layer base {
+  html { color-scheme: dark; }
   body {
-    @apply antialiased m-0 p-[10px] bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    @apply antialiased m-0 bg-background text-foreground font-sans;
+    transition: filter 0.6s var(--ease-3);
   }
+  h1, h2, h3 { font-family: var(--font-display); }
+  * { @apply border-border; }
 
-  h1,
-  h2,
-  h3,
-  .oswald-font {
-    font-family: 'Oswald', sans-serif;
+  /* Visible keyboard focus everywhere (the prototype had none). */
+  :focus-visible {
+    outline: 2px solid var(--color-leverage-neon);
+    outline-offset: 2px;
   }
+  ::selection { background: var(--color-leverage-cyan); color: var(--color-obsidian-950); }
 
-  * {
-    @apply border-border;
+  /* Establishment Flashback: monochrome treatment (core book p.76 "monochromatic flashback"). */
+  body.flashback-mode { filter: grayscale(0.92) contrast(1.18) sepia(0.15); }
+}
+
+/* ---- Utilities ported from the prototype ---- */
+@utility bg-blueprint-grid {
+  background-image:
+    linear-gradient(rgb(0 168 232 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 168 232 / 0.07) 1px, transparent 1px),
+    linear-gradient(rgb(0 168 232 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 168 232 / 0.035) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  background-position: -1px -1px;
+}
+/* 45-degree corner cuts. clip-path also clips outlines, so use these on
+   non-focusable containers only. */
+@utility chamfer-card {
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+@utility chamfer-sm {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+@utility chamfer-tr {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+}
+@utility role-glow {
+  box-shadow: 0 0 20px var(--role-glow);
+}
+
+/* Index cards: gold Assets, crimson Complications */
+@utility index-card-asset {
+  background: linear-gradient(145deg, #1e2436 0%, #171c2b 100%);
+  border-left: 4px solid var(--color-plot-gold);
+  box-shadow: var(--shadow-card);
+}
+@utility index-card-complication {
+  background: linear-gradient(145deg, #2b1620 0%, #1d1118 100%);
+  border-left: 4px solid var(--color-hitch-crimson);
+  box-shadow: var(--shadow-card);
+}
+
+/* Plot point poker chip (rendered as a real <button>) */
+@utility plot-chip {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, #f4a261, #b86b23);
+  border: 4px dashed #fff3d1;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.6), inset 0 0 6px rgb(0 0 0 / 0.5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-obsidian-950);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  &:hover {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 8px 16px rgb(244 162 97 / 0.4), inset 0 0 6px rgb(0 0 0 / 0.5);
+  }
+  &:active {
+    transform: scale(0.95);
   }
 }
 
+/* Legacy typography helpers still referenced by the modal/assembler. */
 @utility font-comic-title {
-  font-family: 'Bangers', cursive;
-  letter-spacing: 0.05em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
-
 @utility font-comic-label {
-  font-family: 'Oswald', sans-serif;
-  font-style: italic;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+/* ---- Existing app classes, restyled for the terminal theme ---- */
 @layer components {
   .comic-panel {
-    @apply border-4 border-black shadow-comic transition-all duration-100;
+    @apply border border-border bg-card shadow-card transition-all duration-100;
   }
-
-  button.comic-panel:active {
-    @apply translate-x-[2px] translate-y-[2px] shadow-comic-active;
-  }
-
   .datafile-container {
-    @apply mx-auto bg-card border-4 border-black max-w-[1000px] shadow-comic;
+    @apply mx-auto bg-card/90 border border-border max-w-[1000px] shadow-card;
   }
-
-  .editable-input {
-    @apply bg-transparent border-none border-b border-dashed border-transparent text-inherit w-full transition-all duration-200;
-    font-family: inherit;
-  }
-
-  .editable-input:hover {
-    @apply border-b border-dashed border-border-hover;
-  }
-
-  .editable-input:focus {
-    @apply outline-none border-b border-solid border-primary bg-black/5;
-  }
-
-  textarea.editable-input {
-    @apply resize-none overflow-hidden block p-0 m-0 min-h-[1.5em];
-    line-height: inherit;
-  }
-
-  .side-label {
-    @apply text-center font-black text-lg text-black px-[5px] uppercase;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    font-family: 'Oswald', sans-serif;
-    letter-spacing: 1px;
-  }
-
-  .section-header {
-    @apply py-[5px] px-[15px] text-[1.5rem] font-bold text-black mb-[10px] flex justify-between items-center border-b-4 border-black;
-  }
-
-  .image-upload-wrapper {
-    @apply relative cursor-pointer h-full min-h-[200px];
-  }
-
-  .image-upload-wrapper:hover .upload-overlay {
-    @apply opacity-100;
-  }
-
-  .upload-overlay {
-    @apply absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 text-white font-bold;
-    background: rgba(0, 0, 0, 0.6);
-  }
-
-  .stress-box {
-    @apply inline-flex items-center justify-center transition-colors duration-200;
-  }
-
-  /* Die container styling */
   .assembler-die-container {
-    filter: drop-shadow(2px 2px 0px rgba(0, 0, 0, 1));
-    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.5));
   }
-.assembler-die-container:active {
-  @apply scale-90 -rotate-5;
-}
-
-.playable-trait {
-  @apply cursor-pointer transition-all duration-200;
-}
-
-.playable-trait:hover {
-  @apply bg-black/10 scale-[1.02];
-}
-
-/* Modal & Form Utilities */  .modal-overlay {
-    @apply fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 opacity-0 animate-fade-in;
+  .playable-trait {
+    @apply cursor-pointer transition-colors duration-200;
+  }
+  .playable-trait:hover {
+    @apply bg-white/10;
   }
 
+  .modal-overlay {
+    @apply fixed inset-0 bg-obsidian-950/85 flex items-center justify-center z-50 p-4 opacity-0 animate-fade-in;
+  }
   .modal-container {
-    @apply bg-white border-4 border-black shadow-comic p-6 max-w-2xl w-full flex flex-col max-h-[90vh] animate-slide-in transition-all duration-100;
+    @apply bg-gunmetal-800 border border-leverage-cyan/60 text-foreground shadow-card p-6 max-w-2xl w-full flex flex-col max-h-[90vh] animate-slide-in chamfer-card;
   }
-
   .comic-textarea {
-    @apply w-full flex-grow bg-white text-black p-4 font-mono text-sm border-4 border-black shadow-comic focus:outline-none focus:border-red-500 mb-6 overflow-y-auto resize-none min-h-[150px] transition-all;
+    @apply w-full flex-grow bg-obsidian-950 text-foreground p-4 font-mono text-sm border border-border focus:outline-none focus:border-leverage-neon mb-6 overflow-y-auto resize-none min-h-[150px] transition-all;
   }
-
   .comic-error-box {
-    @apply bg-comic-red border-4 border-black text-white p-4 mb-4 overflow-y-auto max-h-32 flex-shrink-0 shadow-comic animate-pop;
+    @apply bg-hitch-crimson/20 border border-hitch-crimson text-foreground p-4 mb-4 overflow-y-auto max-h-32 flex-shrink-0 animate-pop;
   }
-
   .comic-link-subtle {
-    @apply text-[10px] font-comic-label font-bold text-black/40 hover:text-primary transition-colors cursor-pointer uppercase underline underline-offset-2;
+    @apply text-xs font-mono text-ink-muted hover:text-leverage-neon transition-colors cursor-pointer uppercase underline underline-offset-2;
   }
 
-  @media print {
-    .no-print, button, select, input[type="file"], .upload-overlay {
-      display: none !important;
-    }
-
-    body {
-      background-color: white !important;
-      color: black !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    .min-h-screen {
-      min-height: auto !important;
-    }
-
-    .pb-10 {
-      padding-bottom: 0 !important;
-    }
-
-    .bg-white, .bg-comic-yellow, .bg-comic-green, .bg-comic-orange, .bg-comic-orange-light, .bg-comic-blue, .bg-comic-cyan, .bg-comic-purple, .bg-comic-red, .bg-comic-gray {
-      background-color: white !important;
-    }
-
-    .comic-panel {
-      border: 2px solid black !important;
-      box-shadow: none !important;
-      background-color: white !important;
-    }
-
-    .datafile-container {
-      border: none !important;
-      box-shadow: none !important;
-      background-color: transparent !important;
-      width: 100% !important;
-      max-width: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    .section-header {
-      color: black !important;
-      border-bottom: 2px solid black !important;
-      background: none !important;
-    }
-
-    .side-label {
-      border-right: 1px solid black !important;
-      color: black !important;
-    }
-
-    /* Force black text for everything except specifically allowed things */
-    * {
-      color: black !important;
-      text-shadow: none !important;
-    }
-
-    /* Keep hero name prominent but maybe allow red if printer supports it, 
-       but for minimal let's go black */
-    .font-comic-title {
-      color: black !important;
-    }
-
-    /* Fix DieIcon in print */
-    .die-icon {
-      filter: none !important;
-      border-color: black !important;
-    }
-
-    /* Hide the 'upload portrait' placeholder text if no image */
-    img[src*="placehold.co"] {
-      opacity: 0.1;
-    }
-
-    @page {
-      size: portrait;
-      margin: 10mm;
-    }
+  /* Form controls */
+  .field {
+    @apply block w-full rounded-sm border border-border bg-obsidian-950 px-2 py-1.5 text-sm text-foreground placeholder:text-ink-muted read-only:bg-transparent read-only:border-transparent;
+  }
+  .field-label {
+    @apply block font-mono text-xs uppercase tracking-wider text-ink-muted mb-1;
+  }
+  .section-title {
+    @apply font-display font-bold text-lg uppercase tracking-wider text-leverage-cyan flex items-center gap-2;
   }
 
-  /* react-easy-edit styles */
+  /* react-easy-edit / EditableTextarea styles */
   .mhr-edit-view {
     @apply border-b border-dashed border-transparent cursor-text transition-all duration-200;
   }
-
   .mhr-edit-view:hover {
     @apply border-border-hover;
   }
+}
 
-  .mhr-edit-edit-container {
-    @apply w-full;
+/* Honour reduced motion: state changes become instant. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
 
-  .mhr-edit-input, 
-  .mhr-edit-textarea {
-    @apply bg-transparent border-none border-b border-solid border-primary bg-black/5 outline-none w-full p-0 m-0;
-    font-family: inherit;
+/* Print: always a light, readable rap sheet regardless of theme/flashback. */
+@media print {
+  .no-print, select, input[type="file"], button:not(.print-keep) {
+    display: none !important;
   }
-
-  .mhr-edit-textarea {
-    @apply block;
+  html, body {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+    filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  * {
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    animation: none !important;
+    border-color: #555 !important;
+  }
+  .field {
+    border: 1px solid #555 !important;
+  }
+  .index-card-asset,
+  .index-card-complication {
+    border-left: 4px solid #555 !important;
+  }
+  .min-h-screen {
+    min-height: auto !important;
+  }
+  .datafile-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+  @page {
+    size: portrait;
+    margin: 10mm;
   }
 }

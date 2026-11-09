@@ -2,6 +2,7 @@ import React from 'react';
 import { DieShape } from '../assembler/DieShape';
 
 interface BaseDieProps {
+    /** Optional CSS colour for the die (sets currentColor). */
     fill?: string;
     size?: string;
     showLabel?: boolean;

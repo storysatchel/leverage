@@ -11,29 +11,30 @@ interface ModeSelectorProps {
 
 export default function ModeSelector({ mode, onChange, className }: ModeSelectorProps) {
     const isPlay = mode === 'play';
-    
+
     return (
-        <div className={cn("flex items-center gap-3 bg-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]", className)}>
-            <Badge 
-                variant={isPlay ? "outline" : "default"} 
+        <div className={cn("flex items-center gap-3 bg-obsidian-950 p-2 border border-border rounded-sm", className)}>
+            <Badge
+                variant="outline"
                 className={cn(
-                    "font-comic-label text-sm px-3 py-1 border-2 border-black",
-                    !isPlay ? "bg-comic-yellow text-black" : "text-gray-400 border-gray-300"
+                    "font-mono text-xs px-3 py-1 uppercase",
+                    !isPlay ? "bg-plot-brass text-obsidian-950 border-plot-brass" : "text-ink-muted border-border"
                 )}
             >
                 EDITING
             </Badge>
-            
-            <Switch 
-                checked={isPlay} 
+
+            <Switch
+                aria-label="Play mode"
+                checked={isPlay}
                 onCheckedChange={(checked) => onChange(checked ? 'play' : 'edit')}
             />
-            
-            <Badge 
-                variant={isPlay ? "default" : "outline"} 
+
+            <Badge
+                variant="outline"
                 className={cn(
-                    "font-comic-label text-sm px-3 py-1 border-2 border-black",
-                    isPlay ? "bg-comic-red text-white" : "text-gray-400 border-gray-300"
+                    "font-mono text-xs px-3 py-1 uppercase",
+                    isPlay ? "bg-leverage-cyan text-obsidian-950 border-leverage-cyan" : "text-ink-muted border-border"
                 )}
             >
                 PLAYING

@@ -66,7 +66,7 @@ export default function EditableTextarea({
         return (
             <div 
                 className={cn(
-                    "playable-trait p-1 rounded",
+                    "playable-trait p-1 rounded-sm",
                     className
                 )}
                 style={style}
@@ -82,7 +82,7 @@ export default function EditableTextarea({
             <textarea
                 ref={textareaRef}
                 className={cn(
-                    "bg-transparent border-none border-b border-solid border-primary bg-black/5 outline-none w-full p-0 m-0 block resize-none overflow-hidden",
+                    "bg-obsidian-950 text-foreground border-b border-solid border-primary w-full p-0 m-0 block resize-none overflow-hidden",
                     className
                 )}
                 style={style}
@@ -100,12 +100,21 @@ export default function EditableTextarea({
 
     return (
         <div 
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit ${value || placeholder}`}
             className={cn(
-                "border-b border-dashed border-transparent hover:border-border-hover cursor-text transition-all duration-200 p-0 m-0",
+                "mhr-edit-view p-0 m-0 min-h-6",
                 className
             )}
             style={style}
             onClick={() => setIsEditing(true)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsEditing(true);
+                }
+            }}
         >
             {value || <span className="text-muted-foreground italic">{placeholder}</span>}
         </div>

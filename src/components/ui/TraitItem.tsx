@@ -2,6 +2,7 @@ import React from 'react';
 import DieIcon from './DieIcon';
 import EditableTextarea from './EditableTextarea';
 import { StepDie } from '@/lib/validation';
+import { X } from 'lucide-react';
 
 interface TraitItemProps {
     die: StepDie;
@@ -28,12 +29,13 @@ export default function TraitItem({
         <div className="flex items-center group relative">
             <DieIcon
                 value={die}
+                label={name || placeholder}
                 onChange={onDieChange}
                 isReadOnly={isReadOnly}
                 onTraitClick={onTraitClick}
             />
             <EditableTextarea
-                className="font-comic-label text-lg font-bold text-black uppercase ml-2 w-32"
+                className="font-display text-lg font-semibold text-foreground uppercase ml-2 w-32"
                 value={name}
                 onChange={onNameChange}
                 placeholder={placeholder}
@@ -42,9 +44,11 @@ export default function TraitItem({
             />
             {!isReadOnly && onRemove && (
                 <button
-                    className="absolute -right-4 top-1 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xl font-black no-print"
+                    type="button"
+                    aria-label={`Remove ${name || placeholder}`}
+                    className="ml-1 p-1 text-hitch-text hover:bg-hitch-crimson/20 rounded-sm no-print"
                     onClick={onRemove}
-                >✕</button>
+                ><X size={16} aria-hidden="true" /></button>
             )}
         </div>
     );
