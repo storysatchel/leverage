@@ -23,7 +23,7 @@ export const DieShape: React.FC<DieShapeProps> = ({
 }) => (
   <div
     className={cn(
-      "assembler-die-container animate-pop flex items-center justify-center m-1 text-leverage-cyan",
+      "assembler-die-container animate-pop flex items-center justify-center m-1",
       className,
     )}
     style={fill ? { color: fill } : undefined}
