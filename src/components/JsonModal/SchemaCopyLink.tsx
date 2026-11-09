@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
-import { characterSchema } from '../../lib/validation';
+import { characterSchema } from '../../lib/leverage';
 
 export const SchemaCopyLink: React.FC = () => {
   const [copied, setCopied] = useState(false);

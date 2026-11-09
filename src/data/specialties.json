@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Explosives",
+    "role": "Thief",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Driving",
+    "role": "Hitter",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Piloting",
+    "role": "Hacker",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Cooking",
+    "role": "Mastermind",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Singing",
+    "role": "Grifter",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Trauma Surgery",
+    "role": "Hacker",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Cardsharp",
+    "role": "Grifter",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Sports Trivia",
+    "role": "Mastermind",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Bartending",
+    "role": "Hitter",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  },
+  {
+    "name": "Snowboarding/Skiing",
+    "role": "Thief",
+    "book": "Leverage: The Roleplaying Game",
+    "page": 31
+  }
+]

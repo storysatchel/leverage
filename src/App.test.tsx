@@ -1,125 +1,91 @@
-import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
-import App, { defaultState } from './App';
-import * as persistence from './lib/persistence';
-
-vi.mock('./lib/persistence', () => ({
-    loadCharacterData: vi.fn(),
-    saveCharacterData: vi.fn(),
-    clearCharacterData: vi.fn(),
-    loadMode: vi.fn(() => 'edit'),
-    saveMode: vi.fn()
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import App, { defaultState as defaultCharacter } from "./App";
+import * as persistence from "./lib/persistence";
+vi.mock("./lib/persistence", () => ({
+  loadMode: vi.fn(() => "edit"),
+  saveMode: vi.fn(),
 }));
 
-describe('App persistence integration', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
+describe("Leverage rap sheet", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(persistence.loadMode).mockReturnValue("edit");
+  });
+  it("edits and resets character data", () => {
+    render(<App />, { wrapper: NuqsTestingAdapter });
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Eliot" },
     });
-
-    it('loads data from localStorage on mount', () => {
-        const mockData = {
-            ...defaultState,
-            heroName: "Persisted Hero",
-            realName: "Persisted Real Name",
-            pp: 10
-        };
-        (persistence.loadCharacterData as any).mockReturnValue(mockData);
-
-        render(<App />, { wrapper: NuqsTestingAdapter });
-
-        expect(persistence.loadCharacterData).toHaveBeenCalled();
-        expect(screen.getByText('Persisted Hero')).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Eliot");
+    fireEvent.click(screen.getByText("RESET DATA"));
+    expect(screen.getByLabelText("Name")).toHaveValue("CREWMEMBER");
+  });
+  it("uses a distinction as a d4 and awards a plot point", () => {
+    vi.mocked(persistence.loadMode).mockReturnValue("play");
+    render(<App />, { wrapper: NuqsTestingAdapter });
+    fireEvent.click(screen.getAllByText("Hinder d4 (+1 PP)")[0]);
+    expect(screen.getByLabelText("Plot Points")).toHaveValue(2);
+    expect(screen.getByText("DISTINCTION 1 (hinder)")).toBeInTheDocument();
+  });
+  it("adds chosen book and custom specialties and a talent", () => {
+    render(<App />, { wrapper: NuqsTestingAdapter });
+    fireEvent.change(screen.getByLabelText("Specialty examples"), {
+      target: { value: "0" },
     });
-
-    it('resets data when RESET DATA button is clicked', async () => {
-        const modifiedState = {
-            ...defaultState,
-            heroName: "Modified Hero",
-            pp: 5
-        };
-        (persistence.loadCharacterData as any).mockReturnValue(modifiedState);
-        
-        render(<App />, { wrapper: NuqsTestingAdapter });
-        
-        const resetButton = screen.getByText('RESET DATA');
-        fireEvent.click(resetButton);
-        
-        expect(persistence.clearCharacterData).toHaveBeenCalled();
-        expect(screen.getByText('HERO NAME')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Talent examples"), {
+      target: { value: "0" },
     });
-});
-
-describe('App game interactions', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
-
-    it('immediately increments XP and copies command when milestone is clicked in play mode', async () => {
-        const mockData = {
-            ...defaultState,
-            heroName: "XP Hero",
-            xp: 10,
-            milestones: [{
-                id: 'm1',
-                name: 'Test Milestone',
-                xp1: 'trigger 1',
-                xp3: 'trigger 3',
-                xp10: 'trigger 10'
-            }]
-        };
-        (persistence.loadCharacterData as any).mockReturnValue(mockData);
-        (persistence.loadMode as any).mockReturnValue('play');
-
-        const writeTextMock = vi.fn().mockResolvedValue(undefined);
-        Object.assign(navigator, {
-            clipboard: {
-                writeText: writeTextMock,
-            },
-        });
-
-        render(<App />, { wrapper: NuqsTestingAdapter });
-
-        // Click milestone trigger
-        const xp3Trigger = screen.getByText('3 XP');
-        await act(async () => {
-            fireEvent.click(xp3Trigger);
-        });
-
-        // a) XP should now be increased
-        expect(screen.getByDisplayValue('13')).toBeInTheDocument();
-
-        // b) Clipboard should contain the add xp command
-        expect(writeTextMock).toHaveBeenCalledWith('/xp add who:XP Hero number:3');
-    });
-
-    it('immediately increments PP and adds die after hinder click in play mode', async () => {
-        const mockData = {
-            ...defaultState,
-            heroName: "Hinder Hero",
-            pp: 1,
-            distinctions: ["Dist 1", "Dist 2", "Dist 3"]
-        };
-        (persistence.loadCharacterData as any).mockReturnValue(mockData);
-        (persistence.loadMode as any).mockReturnValue('play');
-
-        const writeTextMock = vi.fn().mockResolvedValue(undefined);
-        Object.assign(navigator, {
-            clipboard: {
-                writeText: writeTextMock,
-            },
-        });
-
-        render(<App />, { wrapper: NuqsTestingAdapter });
-
-        // Find hinder label
-        const hinderTrigger = screen.getAllByText('HINDER (+1 PP)')[0];
-        await act(async () => {
-            fireEvent.click(hinderTrigger);
-        });
-
-        // PP should now be increased
-        expect(screen.getByDisplayValue('2')).toBeInTheDocument();
-        expect(writeTextMock).toHaveBeenCalledWith('/pp add who:Hinder Hero number:1');
-    });
+    expect(screen.getByText("Explosives")).toBeInTheDocument();
+    expect(screen.getByText("Aerialist")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText("+ CUSTOM")[0]);
+    expect(screen.getByText("NEW SPECIALTY")).toBeInTheDocument();
+  });
+  it("adds the user-selected die sizes for all rated traits to the pool", () => {
+    vi.mocked(persistence.loadMode).mockReturnValue("play");
+    render(<App />, { wrapper: NuqsTestingAdapter });
+    fireEvent.click(screen.getByText("IMPORT / EXPORT"));
+    const payload = {
+      ...defaultCharacter,
+      roles: [{ id: "r", name: "Hacker", die: "12" }],
+      attributes: [{ id: "a", name: "Agility", die: "10" }],
+      specialties: [{ id: "s", name: "Locks", role: "Hacker", die: "8" }],
+      talents: [{ id: "t", name: "Custom Talent", notes: "", die: "4" }],
+      assets: [{ id: "x", name: "Gadget", die: "12" }],
+      complications: [{ id: "c", name: "Alarm", die: "10" }],
+    };
+    fireEvent.change(
+      screen.getByPlaceholderText("Paste character JSON here..."),
+      { target: { value: JSON.stringify(payload) } },
+    );
+    fireEvent.click(screen.getByText(/Load Data/i));
+    for (const name of [
+      "Hacker",
+      "Agility",
+      "Locks",
+      "Custom Talent",
+      "Gadget",
+      "Alarm",
+    ])
+      fireEvent.click(screen.getByText(name));
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    fireEvent.click(screen.getByText("ROLL POOL"));
+    for (const result of [
+      "Hacker: d12 = 7",
+      "Agility: d10 = 6",
+      "Locks (Hacker): d8 = 5",
+      "Custom Talent: d4 = 3",
+      "Gadget: d12 = 7",
+      "Alarm: d10 = 6",
+    ])
+      expect(screen.getByText(result)).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+  it("opens the JSON modal with the complete Leverage schema", () => {
+    render(<App />, { wrapper: NuqsTestingAdapter });
+    fireEvent.click(screen.getByText("IMPORT / EXPORT"));
+    expect(screen.getByText("JSON Import / Export")).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/"roles"/)).toBeInTheDocument();
+  });
 });
