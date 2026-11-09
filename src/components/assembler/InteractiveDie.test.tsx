@@ -104,4 +104,17 @@ describe('InteractiveDie', () => {
         fireEvent.pointerUp(dieContainer);
         expect(onCycle).not.toHaveBeenCalled();
     });
+
+    it('is a button operable from the keyboard: Enter cycles, Delete removes', () => {
+        const onCycle = vi.fn();
+        const onRemove = vi.fn();
+        render(
+            <InteractiveDie type={6} categoryId="c" dieIndex={0} onCycle={onCycle} onRemove={onRemove} />
+        );
+        const button = screen.getByRole('button', { name: /d6 die/ });
+        fireEvent.keyDown(button, { key: 'Enter' });
+        expect(onCycle).toHaveBeenCalledWith('c', 0);
+        fireEvent.keyDown(button, { key: 'Delete' });
+        expect(onRemove).toHaveBeenCalledWith('c', 0);
+    });
 });
