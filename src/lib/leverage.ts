@@ -91,12 +91,62 @@ export function validateCharacterJson(text: string) {
   }
 }
 
-/** Leverage total: set aside 1s, add the two highest remaining dice; all 1s => 0. */
-export function leverageTotal(rolls: number[]) {
+/** Default number of dice added together (core book p.12). */
+export const DEFAULT_KEPT_DICE = 2;
+
+/**
+ * Leverage total: set aside 1s, add the `include` highest remaining dice
+ * (two by default; each Plot Point spent after the roll includes one more, p.13); all 1s => 0.
+ */
+export function leverageTotal(rolls: number[], include: number = DEFAULT_KEPT_DICE) {
   const ones = rolls.filter((r) => r === 1).length;
   const kept = rolls
     .filter((r) => r > 1)
     .sort((a, b) => b - a)
-    .slice(0, 2);
+    .slice(0, include);
   return { total: kept.reduce((a, b) => a + b, 0), kept, ones };
+}
+
+/** Core book p.12: raising the stakes by 5 or more is an Extraordinary Success. */
+export const EXTRAORDINARY_MARGIN = 5;
+
+export type Outcome = "success" | "extraordinary" | "miss";
+
+/**
+ * Compare a total against the stakes. The book requires beating the stakes
+ * (p.64: Basic Actions "require you to raise the stakes, not get a tie"), so equal totals are a miss.
+ */
+export function classifyOutcome(total: number, stakes: number): { outcome: Outcome; margin: number } {
+  const margin = total - stakes;
+  if (margin >= EXTRAORDINARY_MARGIN) return { outcome: "extraordinary", margin };
+  return { outcome: margin > 0 ? "success" : "miss", margin };
+}
+
+export const DIE_STEPS: readonly StepDie[] = ["4", "6", "8", "10", "12"];
+
+/** Step a die up one size; no Asset may exceed d12 (pp.76-77). */
+export function stepUp(die: StepDie): StepDie {
+  return DIE_STEPS[Math.min(DIE_STEPS.indexOf(die) + 1, DIE_STEPS.length - 1)];
+}
+
+/** Step a die down one size, floored at d4 (the book has no general step-down rule). */
+export function stepDown(die: StepDie): StepDie {
+  return DIE_STEPS[Math.max(DIE_STEPS.indexOf(die) - 1, 0)];
+}
+
+export type DieStatus = "kept" | "unused" | "one";
+
+/**
+ * Per-die breakdown consistent with {@link leverageTotal}: 1s are set aside,
+ * the two highest remaining dice are kept, any others are unused.
+ * Ties between equal values resolve to the earlier die.
+ */
+export function classifyDice(rolls: number[], include: number = DEFAULT_KEPT_DICE): DieStatus[] {
+  const order = rolls
+    .map((value, index) => ({ value, index }))
+    .filter((d) => d.value > 1)
+    .sort((a, b) => b.value - a.value || a.index - b.index)
+    .slice(0, include)
+    .map((d) => d.index);
+  return rolls.map((value, i) => (value === 1 ? "one" : order.includes(i) ? "kept" : "unused"));
 }
