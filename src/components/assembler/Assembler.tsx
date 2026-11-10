@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { DIE_SEQUENCE, Category } from './constants';
 import { InteractiveDie } from './InteractiveDie';
 import { PoolDie } from '../../App';
@@ -24,6 +24,7 @@ interface AssemblerProps {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 const FIXER_DIE_SIZES = [4, 6, 8, 10, 12];
+const REMOVAL_CLICK_GUARD_MS = 400;
 
 export const Assembler: React.FC<AssemblerProps> = ({
     pool,
@@ -76,7 +77,9 @@ export const Assembler: React.FC<AssemblerProps> = ({
     };
 
     // Handler: Remove a die entirely (long press or Delete key)
+    const lastRemovalAt = useRef(0);
     const handleRemoveDie = (categoryId: string, dieIndex: number) => {
+        lastRemovalAt.current = Date.now();
         setPool(prev => {
             const newPool = { ...prev };
             const newDiceArray = [...newPool[categoryId]];
@@ -155,7 +158,12 @@ export const Assembler: React.FC<AssemblerProps> = ({
                             key={cat.id}
                             className="comic-panel w-full min-h-24 p-2 grid grid-cols-3 relative overflow-hidden"
                             style={{ borderLeft: `4px solid ${cat.bg}` }}
-                            onClick={() => handleAddDie(cat.id)}
+                            onClick={() => {
+                                // The click synthesized after releasing a hold-to-remove lands on the panel
+                                // once the die is gone; it must not add a d6.
+                                if (Date.now() - lastRemovalAt.current < REMOVAL_CLICK_GUARD_MS) return;
+                                handleAddDie(cat.id);
+                            }}
                         >
                             <div className="col-span-1 flex flex-col justify-center gap-1 pr-1">
                                 <h3 className="font-display font-bold text-base leading-none tracking-wide" style={{ wordBreak: 'break-word' }}>
