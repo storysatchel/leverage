@@ -67,28 +67,48 @@ describe('Assembler', () => {
         expect(screen.getByText('d8')).toBeInTheDocument();
     });
 
-    it('removes a die when long pressed', () => {
+    it('removes a die when long pressed, keeping its slot until release', () => {
         const onToast = vi.fn();
         render(<TestWrapper onToast={onToast} />);
         const categoryPanel = screen.getByText('ROLE').closest('.comic-panel') as HTMLElement;
         
-        // Add die
+        // Add two dice so a neighbour would slide into the slot
         fireEvent.click(categoryPanel);
-        expect(screen.getByText('d6')).toBeInTheDocument();
+        fireEvent.click(categoryPanel);
+        expect(screen.getAllByText('d6')).toHaveLength(2);
         
-        const d6Element = screen.getByText('d6').closest('div')?.parentElement as HTMLElement;
+        const [first] = screen.getAllByRole('button', { name: /d6 die/ });
         
-        fireEvent.pointerDown(d6Element);
+        fireEvent.pointerDown(first);
         act(() => {
             vi.advanceTimersByTime(500);
         });
-        fireEvent.pointerUp(d6Element);
 
-        // Should be removed
-        expect(screen.queryByText('d6')).not.toBeInTheDocument();
+        // Still both there while the finger is down
+        expect(screen.getAllByText('d6')).toHaveLength(2);
+        expect(onToast).not.toHaveBeenCalled();
+
+        fireEvent.pointerUp(first);
+
+        // Removed on lift
+        expect(screen.getAllByText('d6')).toHaveLength(1);
         
         // Should trigger toast
         expect(onToast).toHaveBeenCalledWith('Die removed');
+    });
+
+    it('does not add a d6 from the click that follows removing a die', () => {
+        render(<TestWrapper />);
+        const categoryPanel = screen.getByText('ROLE').closest('.comic-panel') as HTMLElement;
+        fireEvent.click(categoryPanel);
+        const [die] = screen.getAllByRole('button', { name: /d6 die/ });
+        fireEvent.pointerDown(die);
+        act(() => { vi.advanceTimersByTime(500); });
+        fireEvent.pointerUp(die);
+        expect(screen.queryByText('d6')).not.toBeInTheDocument();
+        // the browser's synthesized click lands on the panel after the die is gone
+        fireEvent.click(categoryPanel);
+        expect(screen.queryByText('d6')).not.toBeInTheDocument();
     });
 
     it('clears all dice when clear button is clicked', () => {

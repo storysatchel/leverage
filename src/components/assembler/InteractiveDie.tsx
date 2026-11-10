@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { DieShape } from './DieShape';
 import { bounceElement } from '@/lib/bounce';
 
@@ -13,20 +13,32 @@ interface InteractiveDieProps {
 /**
  * A pool die as a real button. Pointer: tap cycles size, press-and-hold removes.
  * Keyboard: Enter/Space cycles size, Delete/Backspace removes.
+ *
+ * Hold-to-remove only *marks* the die while the finger is down and keeps its slot;
+ * the removal happens on release. Removing it mid-hold would slide the next die under
+ * the finger, which would then receive the tap.
  */
 export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId, dieIndex, onCycle, onRemove }) => {
     const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isLongPress = useRef(false);
+    const isPressed = useRef(false);
     const isCancelled = useRef(false);
+    const [pendingRemoval, setPendingRemoval] = useState(false);
+    const pendingRef = useRef(false);
+
+    const setPending = (value: boolean) => {
+        pendingRef.current = value;
+        setPendingRemoval(value);
+    };
 
     const startPress = (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation(); // Prevent category click
-        isLongPress.current = false;
+        isPressed.current = true;
         isCancelled.current = false;
+        setPending(false);
         pressTimer.current = setTimeout(() => {
             if (isCancelled.current) return;
-            isLongPress.current = true;
-            onRemove(categoryId, dieIndex);
+            setPending(true); // marked for removal; slot stays until the pointer is lifted
+            if (navigator.vibrate) navigator.vibrate(15);
         }, 500); // 500ms long press to delete
     };
 
@@ -34,8 +46,15 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
         e.stopPropagation();
         if (pressTimer.current) clearTimeout(pressTimer.current);
 
-        // If it wasn't a long press and wasn't cancelled, it's a standard tap to cycle
-        if (!isLongPress.current && !isCancelled.current) {
+        // A pointer-up that did not start here (e.g. a neighbour slid under the finger) does nothing.
+        if (!isPressed.current) return;
+        isPressed.current = false;
+
+        if (pendingRef.current) {
+            setPending(false);
+            onRemove(categoryId, dieIndex);
+        } else if (!isCancelled.current) {
+            // If it wasn't a long press and wasn't cancelled, it's a standard tap to cycle
             bounceElement(e.currentTarget);
             onCycle(categoryId, dieIndex);
         }
@@ -44,6 +63,8 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
     const cancelPress = (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         isCancelled.current = true;
+        isPressed.current = false;
+        setPending(false);
         if (pressTimer.current) clearTimeout(pressTimer.current);
     };
 
@@ -61,7 +82,8 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
         <button
             type="button"
             aria-label={`d${type} die. Enter cycles size, Delete removes`}
-            className="rounded-md text-leverage-cyan touch-manipulation select-none"
+            data-pending-removal={pendingRemoval ? 'true' : undefined}
+            className={`rounded-md text-leverage-cyan touch-manipulation select-none transition-[opacity,transform] duration-150 ${pendingRemoval ? 'scale-90 opacity-40' : ''}`}
             onPointerDown={startPress}
             onPointerUp={endPress}
             onPointerLeave={cancelPress}
