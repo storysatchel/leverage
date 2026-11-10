@@ -66,7 +66,7 @@ export default function EditableTextarea({
         return (
             <div 
                 className={cn(
-                    "playable-trait p-1 rounded-sm",
+                    "playable-trait select-none touch-manipulation p-1 rounded-sm",
                     className
                 )}
                 style={style}

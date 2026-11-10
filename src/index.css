@@ -209,10 +209,19 @@
     filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.5));
   }
   .playable-trait {
-    @apply cursor-pointer transition-colors duration-200;
+    @apply cursor-pointer transition-colors duration-200 select-none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
-  .playable-trait:hover {
-    @apply bg-white/10;
+  /* Hover tint only for real hover devices: on touch it sticks after a tap and reads as a highlight. */
+  @media (hover: hover) {
+    .playable-trait:hover {
+      @apply bg-white/10;
+    }
+  }
+  [data-die-button], .assembler-wrapper button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
 
   .modal-overlay {
