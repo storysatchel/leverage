@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { DIE_SEQUENCE, Category } from './constants';
+import { DIE_SEQUENCE, OPPOSITION_POOL, Category } from './constants';
 import { InteractiveDie } from './InteractiveDie';
 import { PoolDie } from '../../App';
 import { ComicButton } from '../ui/ComicButton';
@@ -38,6 +38,8 @@ export const Assembler: React.FC<AssemblerProps> = ({
     onStepUpComplication,
 }) => {
     const [results, setResults] = useState<RolledDie[]>([]);
+    // Complications are rolled by the Fixer as opposition dice, never in the Crew's pool.
+    const { [OPPOSITION_POOL]: opposition = [], ...crewPool } = pool;
     const [extraIncluded, setExtraIncluded] = useState(0);
     const [stakes, setStakes] = useState<number | null>(null);
     const [fixerOnes, setFixerOnes] = useState(0);
@@ -105,7 +107,7 @@ export const Assembler: React.FC<AssemblerProps> = ({
     };
 
     const handleCopyCommand = () => {
-        const command = generateRollCommand(pool);
+        const command = generateRollCommand(crewPool);
         if (!command) {
             triggerToast('Pool is empty');
             return;
@@ -120,16 +122,19 @@ export const Assembler: React.FC<AssemblerProps> = ({
     };
 
     const handleRoll = () => {
-        const dice = Object.values(pool).flat();
+        const dice = Object.values(crewPool).flat();
         if (!dice.length) { triggerToast('Pool is empty'); return; }
         setExtraIncluded(0);
         setResults(dice.map(die => ({ ...die, result: Math.floor(Math.random() * die.value) + 1 })));
     };
 
-    // The Fixer rolls at least two dice and adds the two highest, like the Crew (core p.12).
+    // The Fixer rolls at least two dice and adds the two highest, like the Crew (core p.12),
+    // plus any Complications, which are rolled as part of the opposition's dice.
     const handleFixerRoll = () => {
-        const rolls = Array.from({ length: Math.max(2, fixerDiceCount) }, () =>
+        const base = Array.from({ length: Math.max(2, fixerDiceCount) }, () =>
             Math.floor(Math.random() * fixerDieSize) + 1);
+        const complicationRolls = opposition.map(die => Math.floor(Math.random() * die.value) + 1);
+        const rolls = [...base, ...complicationRolls];
         const t = leverageTotal(rolls);
         setStakes(t.total);
         setFixerOnes(t.ones);
@@ -263,6 +268,36 @@ export const Assembler: React.FC<AssemblerProps> = ({
                         </div>
                         <ComicButton variant="cyan" size="xs" onClick={handleFixerRoll}>Roll for Fixer</ComicButton>
                     </div>
+                    <fieldset className="mt-3 rounded-sm border border-dashed border-hitch-crimson p-2 select-none">
+                        <legend className="px-1 font-mono text-xs font-bold uppercase tracking-wider text-hitch-text">
+                            Opposition pool (Complications)
+                        </legend>
+                        {opposition.length === 0 ? (
+                            <p className="m-0 text-xs text-ink-muted">
+                                The Fixer rolls Complications as part of the opposition's dice. Tap a
+                                Complication on your sheet to add its die here.
+                            </p>
+                        ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                                {opposition.map((die, index) => (
+                                    <div key={die.id} className="flex min-w-[60px] flex-col items-center">
+                                        <InteractiveDie
+                                            type={die.value}
+                                            categoryId={OPPOSITION_POOL}
+                                            dieIndex={index}
+                                            onCycle={handleCycleDie}
+                                            onRemove={handleRemoveDie}
+                                        />
+                                        {die.label && (
+                                            <span className="w-full max-w-[72px] truncate rounded-sm border border-border bg-obsidian-950 px-1 text-center font-mono text-[0.7rem] leading-tight">
+                                                {die.label}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </fieldset>
                 </fieldset>
 
                 {results.length > 0 && (

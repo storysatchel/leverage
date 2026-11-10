@@ -37,6 +37,7 @@ export function IndexCard({ kind, item, isReadOnly, onChange, onRemove, onUse }:
         <DieIcon
           value={item.die}
           label={item.name}
+          actionLabel={isAsset ? undefined : "add to the Fixer's opposition pool"}
           size="w-10 h-10"
           isReadOnly
           onTraitClick={onUse}

@@ -10,6 +10,7 @@ import {
 } from "./lib/leverage";
 import { loadMode, saveMode } from "./lib/persistence";
 import { Assembler } from "./components/assembler/Assembler";
+import { OPPOSITION_POOL } from "./components/assembler/constants";
 import {
   BASE_CATEGORIES,
   TRAIT_CATEGORIES,
@@ -146,7 +147,11 @@ function App() {
               update({ [key]: data[key].map((v, i) => (i === index ? next : v)) })
             }
             onRemove={() => update({ [key]: data[key].filter((v) => v.id !== item.id) })}
-            onUse={() => addDie(category, item.die, item.name)}
+            onUse={() => {
+              addDie(category, item.die, item.name);
+              if (kind === "complication")
+                setToast(`Added ${item.name} (d${item.die}) to the Fixer's opposition pool.`);
+            }}
           />
         ))}
       </ul>
@@ -582,7 +587,7 @@ function App() {
               )}
             </section>
             {cards("Assets", "assets", "asset", "asset")}
-            {cards("Complications", "complications", "comp", "complication")}
+            {cards("Complications", "complications", OPPOSITION_POOL, "complication")}
             <div className="p-4 flex flex-wrap gap-3 no-print">
               <ComicButton
                 variant="red"
