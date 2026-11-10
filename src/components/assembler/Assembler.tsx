@@ -4,7 +4,7 @@ import { InteractiveDie } from './InteractiveDie';
 import { PoolDie } from '../../App';
 import { ComicButton } from '../ui/ComicButton';
 import { generateRollCommand } from '../../lib/cortexPal';
-import { leverageTotal } from '../../lib/leverage';
+import { leverageTotal, type StepDie } from '../../lib/leverage';
 import { RollResultPanel, type RolledDie } from './RollResultPanel';
 
 interface AssemblerProps {
@@ -17,6 +17,9 @@ interface AssemblerProps {
     onPlotPointsChange?: (pp: number) => void;
     /** Player accepted the Fixer's Complication offered for a rolled 1 (+1 Plot Point). */
     onAcceptComplication?: () => void;
+    /** Complications on the sheet, and a handler to step one up with an additional rolled 1. */
+    complications?: { id: string; name: string; die: StepDie }[];
+    onStepUpComplication?: (id: string) => void;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -30,6 +33,8 @@ export const Assembler: React.FC<AssemblerProps> = ({
     plotPoints,
     onPlotPointsChange,
     onAcceptComplication,
+    complications,
+    onStepUpComplication,
 }) => {
     const [results, setResults] = useState<RolledDie[]>([]);
     const [extraIncluded, setExtraIncluded] = useState(0);
@@ -138,13 +143,13 @@ export const Assembler: React.FC<AssemblerProps> = ({
     return (
         <div className="assembler-wrapper font-sans h-full w-full relative comic-panel overflow-hidden chamfer-card">
             <div className="mx-auto p-4 flex flex-col items-center">
-                <div className="text-center mb-4 w-full flex flex-col items-center border-b border-(--role-accent) pb-3">
+                <div className="text-center mb-4 w-full flex flex-col items-center border-b border-(--role-accent) pb-3 select-none">
                     <h2 className="font-display font-bold text-2xl uppercase tracking-wider">Dice Pool</h2>
                     <p className="font-mono text-xs uppercase text-ink-muted">Assemble, roll, raise the stakes</p>
                 </div>
 
                 {/* Category List */}
-                <div className="w-full flex flex-col gap-3 pb-4">
+                <div className="w-full flex flex-col gap-3 pb-4 select-none">
                     {categories.map(cat => (
                         <div
                             key={cat.id}
@@ -199,7 +204,7 @@ export const Assembler: React.FC<AssemblerProps> = ({
                     ))}
                 </div>
 
-                <p className="text-center text-ink-muted text-sm">
+                <p className="text-center text-ink-muted text-sm select-none">
                     Click a panel or its + d6 to add a d6. Click a die (or press Enter) to cycle its size.
                     Press and hold, or press Delete, to remove it.
                 </p>
@@ -262,6 +267,8 @@ export const Assembler: React.FC<AssemblerProps> = ({
                             plotPoints={plotPoints}
                             onIncludeDie={handleIncludeDie}
                             onAcceptComplication={onAcceptComplication}
+                            complications={complications}
+                            onStepUpComplication={onStepUpComplication}
                         />
                     </div>
                 )}

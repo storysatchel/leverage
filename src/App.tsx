@@ -6,6 +6,7 @@ import {
   defaultCharacter,
   type CharacterData as RapSheet,
   type Trait,
+  stepUp,
 } from "./lib/leverage";
 import { loadMode, saveMode } from "./lib/persistence";
 import { Assembler } from "./components/assembler/Assembler";
@@ -614,15 +615,27 @@ function App() {
             onToast={setToast}
             plotPoints={data.pp}
             onPlotPointsChange={(pp) => update({ pp })}
-            onAcceptComplication={() =>
-              update({
-                pp: data.pp + 1,
+            onAcceptComplication={() => {
+              setData((prev) => ({
+                ...prev,
+                pp: prev.pp + 1,
                 complications: [
-                  ...data.complications,
+                  ...prev.complications,
                   { id: id(), name: "COMPLICATION", die: "6" },
                 ],
-              })
-            }
+              }));
+              setToast("Added a d6 Complication and 1 Plot Point to your sheet.");
+            }}
+            complications={data.complications}
+            onStepUpComplication={(compId) => {
+              setData((prev) => ({
+                ...prev,
+                complications: prev.complications.map((c) =>
+                  c.id === compId ? { ...c, die: stepUp(c.die) } : c,
+                ),
+              }));
+              setToast("Stepped up a Complication.");
+            }}
           />
           <div role="status" className="mt-2 text-sm text-ink-muted">
             {toast}

@@ -120,6 +120,12 @@ describe('Assembler', () => {
         expect(screen.getByText('Buddy')).toBeInTheDocument();
     });
 
+    it('does not let the pool panels be text-selected', () => {
+        render(<TestWrapper />);
+        const panel = screen.getByText('ROLE').closest('.comic-panel') as HTMLElement;
+        expect(panel.parentElement).toHaveClass('select-none');
+    });
+
     it('rolls the selected dice and displays their individual results', () => {
         vi.spyOn(Math, 'random').mockReturnValue(0.5);
         const pool = { role: [{ id: '1', value: 8, label: 'Solo' }], spec: [{ id: '2', value: 6, label: 'Expert' }] };
