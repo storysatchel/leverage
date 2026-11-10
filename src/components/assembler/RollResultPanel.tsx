@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -7,6 +7,7 @@ import {
   leverageTotal,
   EXTRAORDINARY_MARGIN,
   type DieStatus,
+  type StepDie,
 } from "@/lib/leverage";
 import { StepDieIcon, isDieSides } from "../ui/StepDieIcon";
 
@@ -26,6 +27,9 @@ interface RollResultPanelProps {
   plotPoints?: number;
   onIncludeDie?: () => void;
   onAcceptComplication?: () => void;
+  /** Complications currently on the sheet, for stepping up with additional 1s. */
+  complications?: { id: string; name: string; die: StepDie }[];
+  onStepUpComplication?: (id: string) => void;
 }
 
 const STATUS_LABEL: Record<DieStatus, string> = {
@@ -67,7 +71,18 @@ export function RollResultPanel({
   plotPoints,
   onIncludeDie,
   onAcceptComplication,
+  complications = [],
+  onStepUpComplication,
 }: RollResultPanelProps) {
+  // The Fixer's offer is per roll: one new d6 Complication (+1 Plot Point), then each
+  // additional 1 may step a Complication up (core book, Complications).
+  const [accepted, setAccepted] = useState(false);
+  const [stepped, setStepped] = useState(0);
+  const [stepTarget, setStepTarget] = useState("");
+  useEffect(() => {
+    setAccepted(false);
+    setStepped(0);
+  }, [results]);
   const values = results.map((r) => r.result);
   const include = 2 + extraIncluded;
   const { total, ones } = leverageTotal(values, include);
@@ -76,6 +91,9 @@ export function RollResultPanel({
   const canInclude = nonOnes > include && (plotPoints ?? 0) > 0 && !!onIncludeDie;
   const outcome = stakes === null ? null : classifyOutcome(total, stakes);
   const copy = outcome ? OUTCOME_COPY[outcome.outcome] : null;
+  const stepsLeft = Math.max(0, ones - 1 - stepped);
+  const stepable = complications.filter((c) => c.die !== "12");
+  const stepChoice = stepable.some((c) => c.id === stepTarget) ? stepTarget : (stepable[0]?.id ?? "");
 
   return (
     <div
@@ -142,14 +160,52 @@ export function RollResultPanel({
               You rolled {ones} × 1. The Fixer may introduce a Complication (a d6, or step up one you
               have) and hand you a Plot Point for it.
             </p>
-            {onAcceptComplication && (
+            {onAcceptComplication && !accepted && (
               <button
                 type="button"
                 className="mt-2 rounded-sm border border-hitch-crimson px-3 py-1 font-mono text-xs uppercase text-hitch-text hover:bg-hitch-crimson hover:text-white"
-                onClick={onAcceptComplication}
+                onClick={() => {
+                  onAcceptComplication();
+                  setAccepted(true);
+                }}
               >
                 Fixer accepts: add d6 Complication, +1 Plot Point
               </button>
+            )}
+            {accepted && (
+              <p role="status" className="mt-2 font-mono text-xs text-hitch-text">
+                Added a d6 Complication and 1 Plot Point to your sheet.
+                {stepped > 0 && ` Stepped up ${stepped} time${stepped === 1 ? "" : "s"}.`}
+              </p>
+            )}
+            {accepted && stepsLeft > 0 && stepable.length > 0 && onStepUpComplication && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label className="sr-only" htmlFor="step-up-target">
+                  Complication to step up
+                </label>
+                <select
+                  id="step-up-target"
+                  className="field w-auto font-mono text-xs"
+                  value={stepChoice}
+                  onChange={(e) => setStepTarget(e.target.value)}
+                >
+                  {stepable.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} (d{c.die})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="rounded-sm border border-hitch-crimson px-3 py-1 font-mono text-xs uppercase text-hitch-text hover:bg-hitch-crimson hover:text-white"
+                  onClick={() => {
+                    onStepUpComplication(stepChoice);
+                    setStepped((n) => n + 1);
+                  }}
+                >
+                  Step up Complication ({stepsLeft} extra 1{stepsLeft === 1 ? "" : "s"} left)
+                </button>
+              </div>
             )}
           </div>
         </div>
