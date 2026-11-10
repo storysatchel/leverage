@@ -9,12 +9,16 @@ interface InteractiveDieProps {
     onRemove: (categoryId: string, dieIndex: number) => void;
 }
 
+/**
+ * A pool die as a real button. Pointer: tap cycles size, press-and-hold removes.
+ * Keyboard: Enter/Space cycles size, Delete/Backspace removes.
+ */
 export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId, dieIndex, onCycle, onRemove }) => {
     const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isLongPress = useRef(false);
     const isCancelled = useRef(false);
 
-    const startPress = (e: React.PointerEvent<HTMLDivElement>) => {
+    const startPress = (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation(); // Prevent category click
         isLongPress.current = false;
         isCancelled.current = false;
@@ -25,7 +29,7 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
         }, 500); // 500ms long press to delete
     };
 
-    const endPress = (e: React.PointerEvent<HTMLDivElement>) => {
+    const endPress = (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         if (pressTimer.current) clearTimeout(pressTimer.current);
 
@@ -35,20 +39,34 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
         }
     };
 
-    const cancelPress = (e: React.PointerEvent<HTMLDivElement>) => {
+    const cancelPress = (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         isCancelled.current = true;
         if (pressTimer.current) clearTimeout(pressTimer.current);
     };
 
+    const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCycle(categoryId, dieIndex);
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            onRemove(categoryId, dieIndex);
+        }
+    };
+
     return (
-        <div
+        <button
+            type="button"
+            aria-label={`d${type} die. Enter cycles size, Delete removes`}
+            className="rounded-md text-leverage-cyan touch-manipulation"
             onPointerDown={startPress}
             onPointerUp={endPress}
             onPointerLeave={cancelPress}
+            onKeyDown={onKeyDown}
             onContextMenu={(e) => { e.preventDefault(); return false; }} // Prevent native context menu on long press
         >
             <DieShape type={type} />
-        </div>
+        </button>
     );
 };

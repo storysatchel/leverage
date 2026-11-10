@@ -12,15 +12,22 @@ interface DieIconProps {
     size?: string;
     isReadOnly?: boolean;
     onTraitClick?: () => void;
+    /** Accessible name for the button, e.g. the trait name. */
+    label?: string;
 }
 
-export default function DieIcon({ 
-    value, 
-    onChange, 
-    className = '', 
+/**
+ * A die that is a real button: in edit mode it cycles the die size,
+ * in play mode it adds the trait's die to the pool.
+ */
+export default function DieIcon({
+    value,
+    onChange,
+    className = '',
     size = "w-14 h-14",
     isReadOnly = false,
-    onTraitClick
+    onTraitClick,
+    label,
 }: DieIconProps) {
     const cycleDie = () => {
         if (isReadOnly) {
@@ -33,16 +40,19 @@ export default function DieIcon({
         if (onChange) onChange(diceTypes[nextIndex]);
     };
 
+    const action = isReadOnly ? 'add to pool' : 'change die size';
     return (
-        <div 
+        <button
+            type="button"
+            aria-label={`${label ? `${label}, ` : ''}d${value}: ${action}`}
             className={cn(
-                "select-none transition-transform duration-100",
-                isReadOnly ? "playable-trait rounded-full" : "cursor-pointer active:scale-90",
+                "print-keep select-none rounded-full text-leverage-cyan transition-transform duration-100",
+                isReadOnly ? "playable-trait" : "cursor-pointer active:scale-90",
                 className
-            )} 
+            )}
             onClick={cycleDie}
         >
             <Die type={value} size={size} />
-        </div>
+        </button>
     );
 }

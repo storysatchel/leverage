@@ -2,21 +2,23 @@ import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+/** Terminal-style button. (Name kept from the original comic theme so call sites don't churn.) */
 const comicButtonVariants = cva(
-    "border-4 border-black font-comic-title tracking-widest transition-all cursor-pointer inline-flex items-center justify-center shadow-comic active:translate-x-[2px] active:translate-y-[2px] active:shadow-comic-active disabled:opacity-50 disabled:cursor-not-allowed",
+    "font-display font-semibold uppercase tracking-wider border transition-colors cursor-pointer inline-flex items-center justify-center gap-2 rounded-sm active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed",
     {
         variants: {
             variant: {
-                red: "bg-comic-red text-white hover:bg-red-500",
-                blue: "bg-comic-blue text-black hover:bg-blue-300",
-                green: "bg-comic-green text-black hover:bg-green-400",
-                white: "bg-white text-black hover:bg-gray-100",
-                cyan: "bg-comic-cyan text-black hover:bg-cyan-200",
+                red: "bg-hitch-deep border-hitch-crimson text-white hover:bg-hitch-crimson",
+                blue: "bg-leverage-deep border-leverage-cyan text-white hover:bg-leverage-cyan hover:text-obsidian-950",
+                green: "bg-emerald-800 border-emerald-500 text-white hover:bg-emerald-600",
+                white: "bg-gunmetal-700 border-border-hover text-foreground hover:bg-gunmetal-600",
+                cyan: "bg-obsidian-950 border-leverage-neon text-leverage-neon hover:bg-leverage-neon hover:text-obsidian-950",
+                gold: "bg-obsidian-950 border-plot-gold text-plot-gold hover:bg-plot-gold hover:text-obsidian-950",
             },
             size: {
-                xs: "text-xs py-1 px-3 border-[3px] shadow-[2px_2px_0_0_#000] active:shadow-[1px_1px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px]",
-                md: "text-xl px-6 py-2",
-                lg: "text-2xl px-6 py-2",
+                xs: "text-xs py-1 px-3",
+                md: "text-base px-5 py-2",
+                lg: "text-lg px-6 py-2",
             }
         },
         defaultVariants: {
@@ -34,10 +36,12 @@ export const ComicButton: React.FC<ComicButtonProps> = ({
     className,
     variant,
     size,
+    type = 'button',
     ...props
 }) => {
     return (
         <button
+            type={type}
             className={cn(comicButtonVariants({ variant, size, className }))}
             {...props}
         />

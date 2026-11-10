@@ -60,8 +60,9 @@ describe("Leverage rap sheet", () => {
       { target: { value: JSON.stringify(payload) } },
     );
     fireEvent.click(screen.getByText(/Load Data/i));
+    // The Role also appears in the Role selector, so click the die button.
+    fireEvent.click(screen.getByRole("button", { name: /^Hacker, d12/ }));
     for (const name of [
-      "Hacker",
       "Agility",
       "Locks",
       "Custom Talent",
@@ -87,5 +88,84 @@ describe("Leverage rap sheet", () => {
     fireEvent.click(screen.getByText("IMPORT / EXPORT"));
     expect(screen.getByText("JSON Import / Export")).toBeInTheDocument();
     expect(screen.getByDisplayValue(/"roles"/)).toBeInTheDocument();
+  });
+  describe("Tactical Terminal interactions", () => {
+    const loadSheet = (patch: object) => {
+      fireEvent.click(screen.getByText("IMPORT / EXPORT"));
+      fireEvent.change(screen.getByPlaceholderText("Paste character JSON here..."), {
+        target: { value: JSON.stringify({ ...defaultCharacter, ...patch }) },
+      });
+      fireEvent.click(screen.getByText(/Load Data/i));
+    };
+
+    it("themes the sheet by the focused Role", () => {
+      const { container } = render(<App />, { wrapper: NuqsTestingAdapter });
+      const root = container.firstElementChild as HTMLElement;
+      expect(root).toHaveAttribute("data-role", "grifter");
+      fireEvent.click(screen.getByRole("button", { name: "Thief", pressed: false }));
+      expect(root).toHaveAttribute("data-role", "thief");
+      expect(screen.getByRole("button", { name: "Thief" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("spends a Plot Point from a chip", () => {
+      render(<App />, { wrapper: NuqsTestingAdapter });
+      fireEvent.click(screen.getByRole("button", { name: /Spend Plot Point 1 of 1/ }));
+      expect(screen.getByLabelText("Plot Points")).toHaveValue(0);
+      expect(screen.getByRole("button", { name: "Spend a Plot Point" })).toBeDisabled();
+    });
+
+    it("flashback toggles monochrome mode and costs 1 Plot Point for a d6 Asset", () => {
+      render(<App />, { wrapper: NuqsTestingAdapter });
+      fireEvent.click(screen.getByRole("button", { name: "Establishment Flashback" }));
+      expect(document.body).toHaveClass("flashback-mode");
+      expect(screen.getByTestId("flashback-overlay")).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("Asset established"), { target: { value: "Rigged lock" } });
+      fireEvent.click(screen.getByRole("button", { name: /Pay 1 Plot Point/ }));
+      expect(screen.getByLabelText("Plot Points")).toHaveValue(0);
+      expect(screen.getByText("Rigged lock")).toBeInTheDocument();
+      expect(document.body).not.toHaveClass("flashback-mode");
+    });
+
+    it("does not let a flashback Asset be bought with no Plot Points", () => {
+      render(<App />, { wrapper: NuqsTestingAdapter });
+      loadSheet({ pp: 0 });
+      fireEvent.click(screen.getByRole("button", { name: "Establishment Flashback" }));
+      expect(screen.getByRole("button", { name: /Pay 1 Plot Point/ })).toBeDisabled();
+    });
+
+    it("steps an Asset up and down and caps at d12", () => {
+      render(<App />, { wrapper: NuqsTestingAdapter });
+      loadSheet({ assets: [{ id: "a", name: "Gadget", die: "10" }] });
+      fireEvent.click(screen.getByRole("button", { name: /Step up Gadget/ }));
+      expect(screen.getByRole("button", { name: /Gadget, d12/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Step up Gadget/ })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: /Step down Gadget/ }));
+      expect(screen.getByRole("button", { name: /Gadget, d10/ })).toBeInTheDocument();
+    });
+
+    it("offers blank 'up your sleeve' Specialty slots and declaring one earns a Plot Point", () => {
+      render(<App />, { wrapper: NuqsTestingAdapter });
+      expect(screen.getByText(/Up your sleeve: 2 blank slots/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Declare in a flashback" }));
+      fireEvent.change(screen.getByLabelText("Book example"), { target: { value: "0" } });
+      expect(screen.getByLabelText("Specialty")).toHaveValue("Explosives");
+      fireEvent.click(screen.getByRole("button", { name: /Add Specialty/ }));
+      expect(screen.getByText("Explosives")).toBeInTheDocument();
+      expect(screen.getByLabelText("Plot Points")).toHaveValue(2);
+      expect(screen.getByText(/Up your sleeve: 1 blank slot$/)).toBeInTheDocument();
+    });
+
+    it("rolls Fixer stakes and shows the outcome banner", () => {
+      vi.mocked(persistence.loadMode).mockReturnValue("play");
+      render(<App />, { wrapper: NuqsTestingAdapter });
+      fireEvent.click(screen.getByRole("button", { name: /^Hacker, d8/ }));
+      fireEvent.change(screen.getByLabelText("Stakes"), { target: { value: "3" } });
+      vi.spyOn(Math, "random").mockReturnValue(0.9); // d8 -> 8, d6 -> 6
+      fireEvent.click(screen.getByText("ROLL POOL"));
+      expect(screen.getByTestId("outcome-banner")).toHaveAttribute("data-outcome", "extraordinary");
+      fireEvent.click(screen.getByRole("button", { name: "Roll for Fixer" }));
+      expect(screen.getByLabelText("Stakes")).toHaveValue(12);
+      vi.restoreAllMocks();
+    });
   });
 });
