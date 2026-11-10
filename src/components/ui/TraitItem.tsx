@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import DieIcon from './DieIcon';
 import EditableTextarea from './EditableTextarea';
 import { StepDie } from '@/lib/validation';
+import { bounceDieWithin } from '@/lib/bounce';
 import { X } from 'lucide-react';
 
 interface TraitItemProps {
@@ -25,8 +26,9 @@ export default function TraitItem({
     onTraitClick,
     onRemove,
 }: TraitItemProps) {
+    const rowRef = useRef<HTMLDivElement>(null);
     return (
-        <div className="flex items-center group relative">
+        <div ref={rowRef} className="flex items-center group relative">
             <DieIcon
                 value={die}
                 label={name || placeholder}
@@ -40,7 +42,10 @@ export default function TraitItem({
                 onChange={onNameChange}
                 placeholder={placeholder}
                 isReadOnly={isReadOnly}
-                onTraitClick={onTraitClick}
+                onTraitClick={() => {
+                    bounceDieWithin(rowRef.current);
+                    onTraitClick?.();
+                }}
             />
             {!isReadOnly && onRemove && (
                 <button

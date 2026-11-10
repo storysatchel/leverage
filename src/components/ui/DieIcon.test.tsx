@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import DieIcon from './DieIcon';
+import TraitItem from './TraitItem';
 
 describe('DieIcon', () => {
     it('renders correctly with given value', () => {
@@ -52,5 +53,31 @@ describe('DieIcon', () => {
         
         expect(onTraitClick).toHaveBeenCalled();
         expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('bounces on tap and cannot be text-selected', () => {
+        const animate = vi.fn();
+        HTMLElement.prototype.animate = animate as unknown as HTMLElement['animate'];
+        render(<DieIcon value="10" isReadOnly onTraitClick={vi.fn()} />);
+        const button = screen.getByRole('button');
+        expect(button).toHaveClass('select-none');
+        fireEvent.click(button);
+        expect(animate).toHaveBeenCalledTimes(1);
+        // @ts-expect-error cleanup of the jsdom stub
+        delete HTMLElement.prototype.animate;
+    });
+
+    it('bounces the die when a trait name is tapped in play mode', () => {
+        const animate = vi.fn();
+        HTMLElement.prototype.animate = animate as unknown as HTMLElement['animate'];
+        const onTraitClick = vi.fn();
+        render(<TraitItem die="8" name="Lockpicking" onNameChange={vi.fn()} placeholder="Trait" isReadOnly onTraitClick={onTraitClick} />);
+        const name = screen.getByText('Lockpicking');
+        expect(name).toHaveClass('select-none');
+        fireEvent.click(name);
+        expect(onTraitClick).toHaveBeenCalledTimes(1);
+        expect(animate).toHaveBeenCalledTimes(1);
+        // @ts-expect-error cleanup of the jsdom stub
+        delete HTMLElement.prototype.animate;
     });
 });

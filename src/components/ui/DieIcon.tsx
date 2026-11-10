@@ -2,6 +2,7 @@ import React from 'react';
 import { Die } from './Dice';
 import { cn } from '@/lib/utils';
 import { StepDie } from '@/lib/validation';
+import { bounceElement } from '@/lib/bounce';
 
 const diceTypes: StepDie[] = ['4', '6', '8', '10', '12'];
 
@@ -29,7 +30,8 @@ export default function DieIcon({
     onTraitClick,
     label,
 }: DieIconProps) {
-    const cycleDie = () => {
+    const cycleDie = (e: React.MouseEvent<HTMLButtonElement>) => {
+        bounceElement(e.currentTarget);
         if (isReadOnly) {
             if (onTraitClick) onTraitClick();
             return;
@@ -44,10 +46,11 @@ export default function DieIcon({
     return (
         <button
             type="button"
+            data-die-button=""
             aria-label={`${label ? `${label}, ` : ''}d${value}: ${action}`}
             className={cn(
-                "print-keep select-none rounded-full text-leverage-cyan transition-transform duration-100",
-                isReadOnly ? "playable-trait" : "cursor-pointer active:scale-90",
+                "print-keep select-none touch-manipulation rounded-full text-leverage-cyan",
+                isReadOnly ? "playable-trait" : "cursor-pointer",
                 className
             )}
             onClick={cycleDie}

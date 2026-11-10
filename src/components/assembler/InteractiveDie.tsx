@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { DieShape } from './DieShape';
+import { bounceElement } from '@/lib/bounce';
 
 interface InteractiveDieProps {
     type: number;
@@ -35,6 +36,7 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
 
         // If it wasn't a long press and wasn't cancelled, it's a standard tap to cycle
         if (!isLongPress.current && !isCancelled.current) {
+            bounceElement(e.currentTarget);
             onCycle(categoryId, dieIndex);
         }
     };
@@ -59,7 +61,7 @@ export const InteractiveDie: React.FC<InteractiveDieProps> = ({ type, categoryId
         <button
             type="button"
             aria-label={`d${type} die. Enter cycles size, Delete removes`}
-            className="rounded-md text-leverage-cyan touch-manipulation"
+            className="rounded-md text-leverage-cyan touch-manipulation select-none"
             onPointerDown={startPress}
             onPointerUp={endPress}
             onPointerLeave={cancelPress}

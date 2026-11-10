@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useRef } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { bounceDieWithin } from "@/lib/bounce";
 import { stepDown, stepUp, type StepDie, type Trait } from "@/lib/leverage";
 import DieIcon from "../ui/DieIcon";
 import EditableTextarea from "../ui/EditableTextarea";
@@ -21,9 +22,11 @@ interface IndexCardProps {
  */
 export function IndexCard({ kind, item, isReadOnly, onChange, onRemove, onUse }: IndexCardProps) {
   const isAsset = kind === "asset";
+  const cardRef = useRef<HTMLLIElement>(null);
   const setDie = (die: StepDie) => onChange({ ...item, die });
   return (
     <li
+      ref={cardRef}
       className={cn(
         "chamfer-sm flex w-full flex-col gap-2 p-3 sm:w-64",
         isAsset ? "index-card-asset" : "index-card-complication",
@@ -45,7 +48,10 @@ export function IndexCard({ kind, item, isReadOnly, onChange, onRemove, onUse }:
           onChange={(name) => onChange({ ...item, name })}
           placeholder={isAsset ? "Asset" : "Complication"}
           isReadOnly={isReadOnly}
-          onTraitClick={onUse}
+          onTraitClick={() => {
+            bounceDieWithin(cardRef.current);
+            onUse();
+          }}
         />
       </div>
       <div className="no-print flex items-center gap-2">
