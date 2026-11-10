@@ -15,6 +15,8 @@ interface DieIconProps {
     onTraitClick?: () => void;
     /** Accessible name for the button, e.g. the trait name. */
     label?: string;
+    /** Accessible verb for tapping the die in play mode; defaults to "add to pool". */
+    actionLabel?: string;
 }
 
 /**
@@ -29,6 +31,7 @@ export default function DieIcon({
     isReadOnly = false,
     onTraitClick,
     label,
+    actionLabel,
 }: DieIconProps) {
     const cycleDie = (e: React.MouseEvent<HTMLButtonElement>) => {
         bounceElement(e.currentTarget);
@@ -42,7 +45,7 @@ export default function DieIcon({
         if (onChange) onChange(diceTypes[nextIndex]);
     };
 
-    const action = isReadOnly ? 'add to pool' : 'change die size';
+    const action = isReadOnly ? (actionLabel ?? 'add to pool') : 'change die size';
     return (
         <button
             type="button"

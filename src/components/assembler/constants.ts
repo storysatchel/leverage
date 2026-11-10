@@ -51,13 +51,6 @@ export const TRAIT_CATEGORIES: Category[] = [
     textColor: "text-black",
   },
   {
-    id: "comp",
-    title: "COMPLICATION",
-    sub: "",
-    bg: "#9163cc",
-    textColor: "text-black",
-  },
-  {
     id: "other",
     title: "OTHER DICE",
     sub: "",
@@ -66,3 +59,10 @@ export const TRAIT_CATEGORIES: Category[] = [
   },
 ];
 export const DIE_SEQUENCE: number[] = [6, 8, 10, 12, 4];
+
+/**
+ * Pool key for the Fixer's opposition dice. The Fixer rolls Complications as part of the
+ * opposition's dice (core book), so they never belong to the Crew's pool: this key is
+ * deliberately not a Crew category and is excluded from the Crew roll and roll command.
+ */
+export const OPPOSITION_POOL = "opposition";

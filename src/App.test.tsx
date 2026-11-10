@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import App, { defaultState as defaultCharacter } from "./App";
@@ -67,9 +67,10 @@ describe("Leverage rap sheet", () => {
       "Locks",
       "Custom Talent",
       "Gadget",
-      "Alarm",
     ])
       fireEvent.click(screen.getByText(name));
+    // Complications are the opposition's dice: tapping one never joins the Crew's pool.
+    fireEvent.click(screen.getByText("Alarm"));
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     fireEvent.click(screen.getByText("ROLL POOL"));
     for (const result of [
@@ -78,9 +79,33 @@ describe("Leverage rap sheet", () => {
       "Locks (Hacker): d8 = 5",
       "Custom Talent: d4 = 3",
       "Gadget: d12 = 7",
-      "Alarm: d10 = 6",
     ])
       expect(screen.getByText(result)).toBeInTheDocument();
+    expect(screen.queryByText("Alarm: d10 = 6")).not.toBeInTheDocument();
+    expect(screen.queryByText("COMPLICATION")).not.toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+  it("puts a tapped Complication in the Fixer's (opposition) pool and rolls it with the Fixer's dice", () => {
+    vi.mocked(persistence.loadMode).mockReturnValue("play");
+    render(<App />, { wrapper: NuqsTestingAdapter });
+    fireEvent.click(screen.getByText("IMPORT / EXPORT"));
+    fireEvent.change(screen.getByPlaceholderText("Paste character JSON here..."), {
+      target: {
+        value: JSON.stringify({
+          ...defaultCharacter,
+          complications: [{ id: "c", name: "Alarm", die: "10" }],
+        }),
+      },
+    });
+    fireEvent.click(screen.getByText(/Load Data/i));
+    fireEvent.click(screen.getByText("Alarm"));
+    const opposition = screen.getByRole("group", { name: /opposition/i });
+    expect(within(opposition).getByText("d10")).toBeInTheDocument();
+    expect(within(opposition).getByText("Alarm")).toBeInTheDocument();
+    // Fixer base 2d6 + Alarm d10, Math.random 0.5 => 4, 4 and 6: stakes = 6 + 4
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    fireEvent.click(screen.getByRole("button", { name: /Roll for Fixer/i }));
+    expect(screen.getByLabelText("Stakes")).toHaveValue(10);
     vi.restoreAllMocks();
   });
   it("opens the JSON modal with the complete Leverage schema", () => {
